@@ -20,10 +20,12 @@ actual fun NativeNode.removeChildren(index: Int, count: Int) {
 }
 actual fun NativeNode.moveChildren(from: Int, to: Int, count: Int) {
     if (from == to) return
-    val moved = ArrayList<NativeNode>(count)
-    repeat(count) { moved.add(children.removeAt(from)) }
-    val insertAt = if (from > to) to else to - count
-    children.addAll(insertAt.coerceIn(0, children.size), moved)
+    for (i in 0 until count) {
+        val fromIndex = if (from > to) from + i else from
+        val toIndex = if (from > to) to + i else to + count - 2
+        val child = children.removeAt(fromIndex)
+        if (toIndex >= children.size) children.add(child) else children.add(toIndex, child)
+    }
 }
 actual fun NativeNode.clearChildren() {
     children.clear()
