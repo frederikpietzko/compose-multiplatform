@@ -64,6 +64,7 @@ dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {
             library("kotlinx-coroutines-core", "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0-RC")
+            library("kotlinx-html", "org.jetbrains.kotlinx:kotlinx-html-jvm:0.11.0")
         }
     }
 }
