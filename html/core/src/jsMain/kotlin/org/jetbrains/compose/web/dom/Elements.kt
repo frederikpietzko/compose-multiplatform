@@ -10,7 +10,7 @@ import org.jetbrains.compose.web.css.StyleSheetBuilder
 import org.jetbrains.compose.web.css.StyleSheetBuilderImpl
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 import org.jetbrains.compose.web.internal.runtime.DomApplier
-import org.jetbrains.compose.web.internal.runtime.DomNodeWrapper
+import org.jetbrains.compose.web.internal.runtime.NativeNodeWrapper
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLAnchorElement
 import org.w3c.dom.HTMLAreaElement
@@ -481,8 +481,8 @@ fun DTerm(
 @OptIn(ComposeWebInternalApi::class)
 @Composable
 fun Text(value: String) {
-    ComposeNode<DomNodeWrapper, DomApplier>(
-        factory = { DomNodeWrapper(document.createTextNode("")) },
+    ComposeNode<NativeNodeWrapper, DomApplier>(
+        factory = { NativeNodeWrapper(document.createTextNode("")) },
         update = {
             set(value) { value -> (node as Text).data = value }
         },

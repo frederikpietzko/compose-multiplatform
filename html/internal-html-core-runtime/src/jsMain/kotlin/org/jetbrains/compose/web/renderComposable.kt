@@ -19,8 +19,8 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.dom.DOMScope
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 import org.jetbrains.compose.web.internal.runtime.DomApplier
-import org.jetbrains.compose.web.internal.runtime.DomNodeWrapper
 import org.jetbrains.compose.web.internal.runtime.GlobalSnapshotManager
+import org.jetbrains.compose.web.internal.runtime.NativeNodeWrapper
 import org.jetbrains.compose.web.internal.runtime.JsMicrotasksDispatcher
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLBodyElement
@@ -50,7 +50,7 @@ fun <TElement : Element> renderComposable(
     }
 
     val composition = ControlledComposition(
-        applier = DomApplier(DomNodeWrapper(root)),
+        applier = DomApplier(NativeNodeWrapper(root)),
         parent = recomposer
     )
     val scope = object : DOMScope<TElement> {

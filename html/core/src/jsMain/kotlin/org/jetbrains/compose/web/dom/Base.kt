@@ -6,8 +6,8 @@ import org.jetbrains.compose.web.ExperimentalComposeWebApi
 import org.jetbrains.compose.web.attributes.AttrsScopeBuilder
 import org.jetbrains.compose.web.css.StyleHolder
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
-import org.jetbrains.compose.web.internal.runtime.DomNodeWrapper
 import org.jetbrains.compose.web.internal.runtime.NamedEventListener
+import org.jetbrains.compose.web.internal.runtime.NativeNodeWrapper
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.css.ElementCSSInlineStyle
@@ -39,7 +39,7 @@ private inline fun <TScope, T> ComposeDomNode(
 }
 
 @ComposeWebInternalApi
-private class DomElementWrapper(override val node: Element): DomNodeWrapper(node) {
+private class DomElementWrapper(override val node: Element): NativeNodeWrapper(node) {
     private var currentListeners = emptyList<NamedEventListener>()
 
     fun updateEventListeners(list: List<NamedEventListener>) {
