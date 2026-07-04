@@ -38,5 +38,11 @@ kotlin {
                 implementation(libs.kotlinx.html)
             }
         }
+
+        val jvmTest by getting {
+            dependencies {
+                implementation(kotlin("test-junit"))
+            }
+        }
     }
 }
