@@ -194,7 +194,7 @@ class ElementsTests {
         var flag by mutableStateOf(false)
 
         composition {
-            TagElement({
+            TagElement<HTMLElement>({
                 counter++
                 document.createElement("div")
             }, null,

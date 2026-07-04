@@ -114,7 +114,10 @@ fun <TElement : Element> TagElement(
 
     ComposeDomNode<ElementScope<TElement>, DomElementWrapper>(
         factory = {
-            val node = elementBuilder.create()
+            // elementBuilder.create() returns the common NativeNode type (an unchecked cast on
+            // JVM; on JS it's already the exact browser type constructed for this tag).
+            @Suppress("UNCHECKED_CAST")
+            val node = elementBuilder.create() as TElement
             scope.element = node
             DomElementWrapper(node)
         },

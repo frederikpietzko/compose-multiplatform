@@ -23,6 +23,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
+                api(project(":internal-html-core-runtime"))
                 implementation(compose.runtime)
                 implementation(libs.kotlinx.coroutines.core)
             }
@@ -31,9 +32,6 @@ kotlin {
         val jsMain by getting {
             languageSettings {
                 optIn("org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi")
-            }
-            dependencies {
-                api(project(":internal-html-core-runtime"))
             }
         }
 
@@ -50,7 +48,6 @@ kotlin {
 
         val jvmMain by getting {
             dependencies {
-                api(project(":internal-html-core-runtime"))
                 implementation(libs.kotlinx.html)
             }
         }

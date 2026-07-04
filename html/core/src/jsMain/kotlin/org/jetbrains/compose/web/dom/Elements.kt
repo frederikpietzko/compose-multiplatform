@@ -2,7 +2,6 @@ package org.jetbrains.compose.web.dom
 
 import androidx.compose.runtime.*
 import androidx.compose.web.attributes.SelectAttrsScope
-import kotlinx.browser.document
 import org.jetbrains.compose.web.attributes.*
 import org.jetbrains.compose.web.attributes.builders.*
 import org.jetbrains.compose.web.css.CSSRuleDeclarationList
@@ -11,7 +10,6 @@ import org.jetbrains.compose.web.css.StyleSheetBuilderImpl
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 import org.jetbrains.compose.web.internal.runtime.DomApplier
 import org.jetbrains.compose.web.internal.runtime.NativeNodeWrapper
-import org.w3c.dom.Element
 import org.w3c.dom.HTMLAnchorElement
 import org.w3c.dom.HTMLAreaElement
 import org.w3c.dom.HTMLAudioElement
@@ -64,12 +62,6 @@ import org.w3c.dom.css.CSSStyleSheet
 
 typealias AttrBuilderContext<T> = AttrsScope<T>.() -> Unit
 typealias ContentBuilder<T> = @Composable ElementScope<T>.() -> Unit
-
-private open class ElementBuilderImplementation<TElement : Element>(private val tagName: String) : ElementBuilder<TElement> {
-    private val el: Element by lazy { document.createElement(tagName) }
-    @Suppress("UNCHECKED_CAST")
-    override fun create(): TElement = el.cloneNode() as TElement
-}
 
 private val Address: ElementBuilder<HTMLElement> = ElementBuilderImplementation("address")
 private val Article: ElementBuilder<HTMLElement> = ElementBuilderImplementation("article")
@@ -161,22 +153,6 @@ private val Tbody: ElementBuilder<HTMLTableSectionElement> = ElementBuilderImple
 private val Tfoot: ElementBuilder<HTMLTableSectionElement> = ElementBuilderImplementation("tfoot")
 
 internal val Style: ElementBuilder<HTMLStyleElement> = ElementBuilderImplementation("style")
-
-fun interface ElementBuilder<TElement : Element> {
-    fun create(): TElement
-
-    companion object {
-        // it's internal only for testing purposes
-        internal val buildersCache = mutableMapOf<String, ElementBuilder<*>>()
-
-        fun <TElement : Element> createBuilder(tagName: String): ElementBuilder<TElement> {
-            val tagLowercase = tagName.lowercase()
-            return buildersCache.getOrPut(tagLowercase) {
-                ElementBuilderImplementation<TElement>(tagLowercase)
-            }.unsafeCast<ElementBuilder<TElement>>()
-        }
-    }
-}
 
 @Composable
 fun Address(
@@ -482,7 +458,7 @@ fun DTerm(
 @Composable
 fun Text(value: String) {
     ComposeNode<NativeNodeWrapper, DomApplier>(
-        factory = { NativeNodeWrapper(document.createTextNode("")) },
+        factory = { NativeNodeWrapper(createNativeText("")) },
         update = {
             set(value) { value -> (node as Text).data = value }
         },
