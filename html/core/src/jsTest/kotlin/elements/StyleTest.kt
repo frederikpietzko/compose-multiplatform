@@ -10,6 +10,11 @@ import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.*
 import org.jetbrains.compose.web.testutils.*
 import org.w3c.dom.*
+// Explicit import needed: org.jetbrains.compose.web.dom.* (task 2.1) now also
+// declares a type named HTMLStyleElement (its JS actual is this same
+// org.w3c.dom.HTMLStyleElement), so the two wildcard imports are ambiguous
+// for the plain name. An explicit import wins over both wildcards.
+import org.w3c.dom.HTMLStyleElement
 import org.w3c.dom.css.*
 import kotlin.test.*
 

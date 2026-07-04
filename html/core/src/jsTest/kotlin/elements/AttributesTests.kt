@@ -14,6 +14,15 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import org.jetbrains.compose.web.testutils.*
 import org.w3c.dom.*
+// Explicit imports needed: org.jetbrains.compose.web.dom.* (task 2.1) now also
+// declares types named HTMLDivElement/HTMLButtonElement/HTMLInputElement/
+// HTMLCanvasElement (their JS actuals are these same org.w3c.dom types), so
+// the two wildcard imports are ambiguous for the plain names. An explicit
+// import wins over both wildcards.
+import org.w3c.dom.HTMLDivElement
+import org.w3c.dom.HTMLButtonElement
+import org.w3c.dom.HTMLInputElement
+import org.w3c.dom.HTMLCanvasElement
 import kotlin.test.assertContains
 import kotlin.test.assertTrue
 

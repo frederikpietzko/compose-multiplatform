@@ -5,12 +5,12 @@ actual abstract class NativeNode {
 }
 
 class JvmRootNode : NativeNode()
-class JvmElement(val tagName: String) : NativeNode() {
+open class JvmElement(val tagName: String) : NativeNode() {
     val attributes = LinkedHashMap<String, String>()
     val styles = LinkedHashMap<String, String>()
     val classes = mutableListOf<String>()
 }
-class JvmTextNode(var text: String) : NativeNode()
+open class JvmTextNode(var text: String) : NativeNode()
 
 actual fun NativeNode.insertChild(index: Int, child: NativeNode) {
     if (index < children.size) children.add(index, child) else children.add(child)
