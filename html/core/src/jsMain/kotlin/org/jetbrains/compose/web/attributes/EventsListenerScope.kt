@@ -8,17 +8,12 @@ import androidx.compose.web.events.SyntheticMouseEvent
 import androidx.compose.web.events.SyntheticWheelEvent
 import org.jetbrains.compose.web.events.*
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
+import org.jetbrains.compose.web.internal.runtime.NamedEventListener
 import org.w3c.dom.events.EventTarget
 
 private typealias SyntheticMouseEventListener = (SyntheticMouseEvent) -> Unit
 private typealias SyntheticWheelEventListener = (SyntheticWheelEvent) -> Unit
 private typealias SyntheticDragEventListener = (SyntheticDragEvent) -> Unit
-
-@Deprecated(
-    message = "Renamed to EventsListenerScopeBuilder",
-    replaceWith = ReplaceWith("EventsListenerScopeBuilder", "org.jetbrains.compose.web.attributes.EventsListenerScopeBuilder")
-)
-typealias EventsListenerBuilder = EventsListenerScopeBuilder
 
 /**
  * [EventsListenerScope] is used most often not directly but via [AttrsScope].
@@ -26,9 +21,9 @@ typealias EventsListenerBuilder = EventsListenerScopeBuilder
  * exist dedicated method. In case you need to support event that doesn't have such method,
  * use [addEventListener]
  */
-interface EventsListenerScope {
+actual interface EventsListenerScope {
     @ComposeWebInternalApi
-    fun registerEventListener(listener: SyntheticEventListener<*>)
+    actual fun registerEventListener(listener: NamedEventListener)
 
     /* Mouse Events */
 
@@ -268,18 +263,4 @@ interface EventsListenerScope {
         const val SUBMIT = "submit"
         const val RESET = "reset"
     }
-}
-
-open class EventsListenerScopeBuilder : EventsListenerScope {
-    private val listeners: MutableList<SyntheticEventListener<*>> = mutableListOf()
-
-    override fun registerEventListener(listener: SyntheticEventListener<*>) {
-        listeners.add(listener)
-    }
-
-    internal fun copyListenersFrom(from: EventsListenerScopeBuilder) {
-        listeners.addAll(from.listeners)
-    }
-
-    internal fun collectListeners(): List<SyntheticEventListener<*>> = listeners
 }

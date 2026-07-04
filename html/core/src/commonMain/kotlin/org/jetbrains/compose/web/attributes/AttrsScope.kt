@@ -4,9 +4,15 @@ import androidx.compose.runtime.DisposableEffectResult
 import androidx.compose.runtime.DisposableEffectScope
 import org.jetbrains.compose.web.css.StyleScope
 import org.jetbrains.compose.web.css.StyleScopeBuilder
+import org.jetbrains.compose.web.dom.DomElement
+import org.jetbrains.compose.web.dom.DomHtmlElement
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
-import org.w3c.dom.Element
-import org.w3c.dom.HTMLElement
+
+// Moved from jsMain to commonMain (task 2.3): org.w3c.dom.Element -> DomElement,
+// org.w3c.dom.HTMLElement -> DomHtmlElement. propertyUpdates' element type was already exactly
+// the shape ElementUpdater.applyProps expects (List<Pair<(DomElement, Any) -> Unit, Any>>), so no
+// further changes were needed there. Dropped the unused `setClassList` val at the bottom of the
+// original file (dead code, zero call sites, confirmed via grep before this move).
 
 @Deprecated(
     message = "Renamed to AttrsScopeBuilder",
@@ -28,7 +34,7 @@ typealias AttrsBuilder<T> = AttrsScopeBuilder<T>
  *
  */
 @HtmlAttrMarker
-interface AttrsScope<out TElement : Element> : EventsListenerScope {
+interface AttrsScope<out TElement : DomElement> : EventsListenerScope {
     /**
      * [style] add inline CSS-style properties to the element via [StyleScope] context
      *
@@ -119,7 +125,7 @@ interface AttrsScope<out TElement : Element> : EventsListenerScope {
      * ```
      */
     @Suppress("UNCHECKED_CAST")
-    fun <E : HTMLElement, V> prop(update: (E, V) -> Unit, value: V)
+    fun <E : DomHtmlElement, V> prop(update: (E, V) -> Unit, value: V)
 
     companion object {
         const val CLASS = "class"
@@ -135,12 +141,12 @@ interface AttrsScope<out TElement : Element> : EventsListenerScope {
     }
 }
 
-open class AttrsScopeBuilder<TElement : Element>(
+open class AttrsScopeBuilder<TElement : DomElement>(
     internal val eventsListenerScopeBuilder: EventsListenerScopeBuilder = EventsListenerScopeBuilder()
 ) : AttrsScope<TElement>, EventsListenerScope by eventsListenerScopeBuilder {
     internal val attributesMap = mutableMapOf<String, String>()
     internal val styleScope: StyleScopeBuilder = StyleScopeBuilder()
-    internal val propertyUpdates = mutableListOf<Pair<(Element, Any) -> Unit, Any>>()
+    internal val propertyUpdates = mutableListOf<Pair<(DomElement, Any) -> Unit, Any>>()
     internal var refEffect: (DisposableEffectScope.(TElement) -> DisposableEffectResult)? = null
     internal val classes: MutableList<String> = mutableListOf()
 
@@ -223,8 +229,8 @@ open class AttrsScopeBuilder<TElement : Element>(
      * ```
      */
     @Suppress("UNCHECKED_CAST")
-    override fun <E : HTMLElement, V> prop(update: (E, V) -> Unit, value: V) {
-        propertyUpdates.add((update to value) as Pair<(Element, Any) -> Unit, Any>)
+    override fun <E : DomHtmlElement, V> prop(update: (E, V) -> Unit, value: V) {
+        propertyUpdates.add((update to value) as Pair<(DomElement, Any) -> Unit, Any>)
     }
 
     internal fun collect(): Map<String, String> {
@@ -241,8 +247,4 @@ open class AttrsScopeBuilder<TElement : Element>(
 
         eventsListenerScopeBuilder.copyListenersFrom(attrsScope.eventsListenerScopeBuilder)
     }
-}
-
-private val setClassList: (HTMLElement, Array<out String>) -> Unit = { e, classList ->
-    e.classList.add(*classList)
 }

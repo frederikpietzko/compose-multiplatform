@@ -213,7 +213,7 @@ class AttributesTests {
 
         val listeners = copyToAttrsScope.eventsListenerScopeBuilder.collectListeners()
         assertEquals(1, listeners.size)
-        assertEquals("click", listeners[0].event)
+        assertEquals("click", listeners[0].name)
     }
 
     @Test

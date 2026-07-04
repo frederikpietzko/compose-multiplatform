@@ -1,5 +1,7 @@
 package org.jetbrains.compose.web.dom
 
+import org.jetbrains.compose.web.internal.runtime.NativeNode
+
 // Common element-type hierarchy for Compose HTML (task 2.1).
 //
 // JS actualizes each type to the identically-named browser type
@@ -32,7 +34,10 @@ package org.jetbrains.compose.web.dom
 //     compatibility -- so it mirrors org.w3c.dom's own declared modality
 //     for each type (all of Element/HTMLElement/HTMLxxxElement are
 //     `abstract`; Text is `open`).
-expect abstract class DomElement
+// DomElement : NativeNode added in task 2.3 -- both actuals already satisfy it (JvmElement/Node
+// chain to NativeNode), and TagElement/ComposeDomNode (task 2.3) need to pass a created TElement
+// straight into a NativeNodeWrapper without an unchecked cast.
+expect abstract class DomElement : NativeNode
 expect abstract class DomHtmlElement : DomElement
 expect open class DomText
 

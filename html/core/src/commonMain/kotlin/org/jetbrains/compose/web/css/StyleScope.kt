@@ -11,6 +11,12 @@ import org.jetbrains.compose.web.attributes.HtmlAttrMarker
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 import kotlin.properties.ReadOnlyProperty
 
+// Moved from jsMain to commonMain (task 2.3) so AttrsScope.style(builder: StyleScope.() -> Unit)
+// can move to commonMain too. CSSVariableValueAs and the where-clause `.value()` overload that
+// depends on it stay jsMain-only (see CSSVariableValueAs.kt) -- porting that user-extensibility
+// hook, and the concrete CSS property extension functions (color(), width(), etc.), is out of
+// scope for this task.
+
 @Deprecated(
     message = "Renamed to StyleScope",
     replaceWith = ReplaceWith("StyleScope", "org.jetbrains.compose.web.css.StyleScope")
@@ -87,13 +93,13 @@ interface StyleScope {
 internal inline fun variableValue(variableName: String, fallback: StylePropertyValue? = null) =
     "var(--$variableName${fallback?.let { ", $it" } ?: ""})"
 
-external interface CSSVariableValueAs<out T : StylePropertyValue>
+inline fun <TValue> CSSVariableValue(value: StylePropertyValue): TValue {
+    @Suppress("UNCHECKED_CAST")
+    return value as TValue
+}
 
-inline fun <TValue> CSSVariableValue(value: StylePropertyValue) =
-    value.unsafeCast<TValue>()
-
-inline fun <TValue> CSSVariableValue(value: String) =
-    CSSVariableValue<TValue>(StylePropertyValue(value))
+inline fun <TValue> CSSVariableValue(value: String): TValue =
+    CSSVariableValue(StylePropertyValue(value))
 
 // after adding `variable` word `add` became ambiguous
 @Deprecated(
@@ -112,16 +118,6 @@ interface CSSVariable {
 class CSSStyleVariable<out TValue : StylePropertyValue>(override val name: String) : CSSVariable
 
 fun <TValue : StylePropertyValue> CSSStyleVariable<TValue>.value(fallback: TValue? = null) =
-    CSSVariableValue<TValue>(
-        variableValue(
-            name,
-            fallback
-        )
-    )
-
-fun <TValue> CSSStyleVariable<TValue>.value(fallback: TValue? = null)
-        where TValue : CSSVariableValueAs<TValue>,
-              TValue : StylePropertyValue =
     CSSVariableValue<TValue>(
         variableValue(
             name,
@@ -167,6 +163,7 @@ interface StyleHolder {
 typealias StyleBuilderImpl = StyleScopeBuilder
 
 @Suppress("EqualsOrHashCode")
+@OptIn(ComposeWebInternalApi::class)
 open class StyleScopeBuilder : StyleScope, StyleHolder {
     override val properties: MutableStylePropertyList = mutableListOf()
     override val variables: MutableStylePropertyList = mutableListOf()
@@ -205,10 +202,10 @@ data class StylePropertyDeclaration(
 ) {
     constructor(name: String, value: StylePropertyValue) : this(name, value, false)
 
-    constructor(name: String, value: String, important: Boolean) : this(name, value.unsafeCast<StylePropertyValue>(), important)
+    constructor(name: String, value: String, important: Boolean) : this(name, StylePropertyValue(value), important)
     constructor(name: String, value: String) : this(name, value, false)
 
-    constructor(name: String, value: Number, important: Boolean) : this(name, value.unsafeCast<StylePropertyValue>(), important)
+    constructor(name: String, value: Number, important: Boolean) : this(name, StylePropertyValue(value), important)
     constructor(name: String, value: Number) : this(name, value, false)
 }
 typealias StylePropertyList = List<StylePropertyDeclaration>
@@ -222,6 +219,6 @@ internal fun StylePropertyList.nativeEquals(properties: StylePropertyList): Bool
         val otherProp = properties[index++]
         prop.name == otherProp.name &&
             prop.important == otherProp.important && prop.value.toString() == otherProp.value.toString()
-                
+
     }
 }

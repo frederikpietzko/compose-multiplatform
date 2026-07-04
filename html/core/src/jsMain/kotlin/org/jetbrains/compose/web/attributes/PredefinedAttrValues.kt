@@ -80,12 +80,6 @@ sealed class InputType<T>(val typeStr: String) {
     }
 }
 
-sealed class DirType(val dirStr: String) {
-    object Ltr : DirType("ltr")
-    object Rtl : DirType("rtl")
-    object Auto : DirType("auto")
-}
-
 sealed class ATarget(val targetStr: String) {
     object Blank : ATarget("_blank")
     object Parent : ATarget("_parent")
@@ -112,10 +106,6 @@ sealed class ARel(val relStr: String) {
     object Tag : ARel("tag")
 
     class CustomARel(value: String) : ARel(value)
-}
-
-enum class Draggable(val str: String) {
-    True("true"), False("false"), Auto("auto");
 }
 
 enum class ButtonType(val str: String) {
@@ -189,22 +179,6 @@ enum class Scope(val str: String) {
     Col("col"),
     Colgroup("colgroup")
 }
-
-/**
- * see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/inputmode
- */
-enum class InputMode(val str: String) {
-    None("none"),
-    Text("text"), // default
-    Decimal("decimal"),
-    Numeric("numeric"),
-    Tel("tel"),
-    Search("search"),
-    Email("email"),
-    Url("url"),
-    ;
-}
-
 
 /**
  * https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete

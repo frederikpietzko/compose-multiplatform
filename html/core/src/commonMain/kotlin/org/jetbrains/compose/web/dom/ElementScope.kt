@@ -1,7 +1,6 @@
 package org.jetbrains.compose.web.dom
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ComposeCompilerApi
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.DisposableEffectResult
 import androidx.compose.runtime.DisposableEffectScope
@@ -10,7 +9,9 @@ import androidx.compose.runtime.RememberObserver
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.currentComposer
 import androidx.compose.runtime.remember
-import org.w3c.dom.Element
+
+// Moved from jsMain to commonMain (task 2.3): org.w3c.dom.Element -> DomElement throughout. No
+// other changes -- this type is plain Compose-runtime plumbing with no browser-specific logic.
 
 /**
  * ElementScope allows adding effects to the Composable representing html element.
@@ -25,7 +26,7 @@ import org.w3c.dom.Element
  * }
  * ```
  */
-interface ElementScope<out TElement : Element> : DOMScope<TElement> {
+interface ElementScope<out TElement : DomElement> : DOMScope<TElement> {
 
     /**
      * A side effect of composition that must run for any new unique value of [key]
@@ -83,7 +84,7 @@ interface ElementScope<out TElement : Element> : DOMScope<TElement> {
 }
 
 @Suppress("DEPRECATION")
-abstract class ElementScopeBase<out TElement : Element> : ElementScope<TElement> {
+abstract class ElementScopeBase<out TElement : DomElement> : ElementScope<TElement> {
     private var nextDisposableDomEffectKey = 0
     abstract val element: TElement
 
@@ -118,7 +119,7 @@ abstract class ElementScopeBase<out TElement : Element> : ElementScope<TElement>
     }
 }
 
-internal open class ElementScopeImpl<TElement : Element> : ElementScopeBase<TElement>() {
+internal open class ElementScopeImpl<TElement : DomElement> : ElementScopeBase<TElement>() {
     override lateinit var element: TElement
 
     override val DisposableEffectScope.scopeElement: TElement
@@ -126,13 +127,13 @@ internal open class ElementScopeImpl<TElement : Element> : ElementScopeBase<TEle
 }
 
 interface DomEffectScope {
-    fun onDispose(disposeEffect: (Element) -> Unit)
+    fun onDispose(disposeEffect: (DomElement) -> Unit)
 }
 
 private class DomDisposableEffectHolder(
-    val elementScope: ElementScopeBase<Element>
+    val elementScope: ElementScopeBase<DomElement>
 ) : RememberObserver, DomEffectScope {
-    var onDispose: ((Element) -> Unit)? = null
+    var onDispose: ((DomElement) -> Unit)? = null
 
     override fun onRemembered() {}
 
@@ -142,7 +143,7 @@ private class DomDisposableEffectHolder(
 
     override fun onAbandoned() {}
 
-    override fun onDispose(disposeEffect: (Element) -> Unit) {
+    override fun onDispose(disposeEffect: (DomElement) -> Unit) {
         onDispose = disposeEffect
     }
 }

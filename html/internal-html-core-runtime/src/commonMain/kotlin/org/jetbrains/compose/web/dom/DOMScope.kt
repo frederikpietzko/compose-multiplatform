@@ -6,8 +6,10 @@
 package org.jetbrains.compose.web.dom
 
 import androidx.compose.runtime.DisposableEffectScope
-import org.w3c.dom.Element
+import org.jetbrains.compose.web.internal.runtime.NativeNode
 
-interface DOMScope<out TElement : Element> {
+// Bound loosened from org.w3c.dom.Element to the common NativeNode (task 2.3) so this type is
+// usable from commonMain. renderComposable's `TElement : Element` (JS-only) still satisfies this.
+interface DOMScope<out TElement : NativeNode> {
     val DisposableEffectScope.scopeElement: TElement
 }

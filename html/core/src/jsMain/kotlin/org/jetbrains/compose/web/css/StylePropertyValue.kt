@@ -6,13 +6,13 @@
 @file:Suppress("UNUSED", "NOTHING_TO_INLINE", "FunctionName")
 package org.jetbrains.compose.web.css
 
-external interface StylePropertyValue
+actual external interface StylePropertyValue
 
-external interface StylePropertyNumber: StylePropertyValue
-external interface StylePropertyString: StylePropertyValue
+actual external interface StylePropertyNumber: StylePropertyValue
+actual external interface StylePropertyString: StylePropertyValue
 
-inline fun StylePropertyValue(value: String): StylePropertyString = value.unsafeCast<StylePropertyString>()
-inline fun StylePropertyValue(value: Number): StylePropertyNumber = value.unsafeCast<StylePropertyNumber>()
+actual inline fun StylePropertyValue(value: String): StylePropertyString = value.unsafeCast<StylePropertyString>()
+actual inline fun StylePropertyValue(value: Number): StylePropertyNumber = value.unsafeCast<StylePropertyNumber>()
 
 external interface CSSStyleValue: StylePropertyValue {
     override fun toString(): String
