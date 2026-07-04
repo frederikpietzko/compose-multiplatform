@@ -8,6 +8,7 @@ plugins {
 
 
 kotlin {
+    jvm()
     js(IR) {
         browser() {
             testTask {
@@ -23,14 +24,11 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation(compose.runtime)
-                implementation(kotlin("stdlib-common"))
             }
         }
 
         val jsMain by getting {
             dependencies {
-                api(project(":internal-html-core-runtime"))
-                implementation(kotlin("stdlib-js"))
                 api(project(":html-core"))
             }
         }
@@ -43,6 +41,18 @@ kotlin {
                 implementation(project(":html-test-utils"))
                 implementation(kotlin("test-js"))
                 implementation(libs.kotlinx.coroutines.core)
+            }
+        }
+
+        val jvmMain by getting {
+            dependencies {
+                api(project(":html-core"))
+            }
+        }
+
+        val jvmTest by getting {
+            dependencies {
+                implementation(kotlin("test-junit"))
             }
         }
     }

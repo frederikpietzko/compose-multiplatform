@@ -50,7 +50,14 @@ kotlin {
 
         val jvmMain by getting {
             dependencies {
-                implementation(compose.desktop.currentOs)
+                api(project(":internal-html-core-runtime"))
+                implementation(libs.kotlinx.html)
+            }
+        }
+
+        val jvmTest by getting {
+            dependencies {
+                implementation(kotlin("test-junit"))
             }
         }
     }
