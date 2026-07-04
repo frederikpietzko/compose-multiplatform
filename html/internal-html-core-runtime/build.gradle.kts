@@ -8,6 +8,7 @@ plugins {
 
 
 kotlin {
+    jvm()
     js(IR) {
         browser() {
             testTask {
@@ -29,6 +30,12 @@ kotlin {
         val jsTest by getting {
             dependencies {
                 implementation(kotlin("test-js"))
+            }
+        }
+
+        val jvmMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.html)
             }
         }
     }
