@@ -6,7 +6,6 @@
 package org.jetbrains.compose.web.events
 
 import androidx.compose.web.events.NativeEvent
-import androidx.compose.web.events.NativeEventTarget
 import androidx.compose.web.events.SyntheticEvent
 import androidx.compose.web.events.readInputValueOrNull
 
@@ -17,7 +16,9 @@ import androidx.compose.web.events.readInputValueOrNull
 // properties). `external` isn't available outside JS/Native source sets, so it's now a plain data
 // holder; the (still JS-only) SelectEventListener in attributes/SyntheticEventListener.kt reads
 // the two fields dynamically off the target and constructs one of these to pass in.
-class SyntheticSelectEvent<Element : NativeEventTarget> internal constructor(
+//
+// Element's bound widened to unconstrained in task 2.5 -- see SyntheticEvent.kt for the rationale.
+class SyntheticSelectEvent<Element> internal constructor(
     nativeEvent: NativeEvent,
     selectionInfoDetails: SelectionInfoDetails
 ) : SyntheticEvent<Element>(nativeEvent) {

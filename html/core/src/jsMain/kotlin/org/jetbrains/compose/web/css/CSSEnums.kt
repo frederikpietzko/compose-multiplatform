@@ -180,7 +180,8 @@ interface Position: StylePropertyEnum {
 }
 inline fun Position(value: String) = value.unsafeCast<Position>()
 
-typealias LanguageCode = String
+// LanguageCode moved to commonMain (task 2.5, see StyleSheetBuilder.kt) so SelectorsScope.lang(...)
+// could move too; same-package visibility means it's still usable here unqualified.
 
 interface StepPosition: StylePropertyEnum {
     companion object {

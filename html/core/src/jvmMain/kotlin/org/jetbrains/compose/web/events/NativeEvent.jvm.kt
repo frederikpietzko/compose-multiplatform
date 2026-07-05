@@ -109,5 +109,9 @@ internal actual fun NativeKeyboardEvent.readLocale(): String = ""
 
 internal actual fun NativeEventTarget?.readInputValueOrNull(): String? = null
 
+internal actual fun NativeEventTarget?.readCheckedOrNull(): Boolean? = null
+
+internal actual fun NativeEventTarget?.readValueAsNumberOrNull(): Number? = null
+
 internal actual fun extractInputEventDetails(nativeEvent: NativeEvent): InputEventDetails =
     InputEventDetails(data = null, dataTransfer = null, inputType = null, isComposing = false)

@@ -1,10 +1,15 @@
 package org.jetbrains.compose.web.attributes
 
 import androidx.compose.web.events.SyntheticEvent
+import org.jetbrains.compose.web.attributes.EventsListenerScope.Companion.CHANGE
+import org.jetbrains.compose.web.attributes.EventsListenerScope.Companion.SELECT
 import org.jetbrains.compose.web.events.SyntheticAnimationEvent
+import org.jetbrains.compose.web.events.SyntheticChangeEvent
 import org.jetbrains.compose.web.events.SyntheticClipboardEvent
 import org.jetbrains.compose.web.events.SyntheticFocusEvent
+import org.jetbrains.compose.web.events.SyntheticInputEvent
 import org.jetbrains.compose.web.events.SyntheticKeyboardEvent
+import org.jetbrains.compose.web.events.SyntheticSelectEvent
 import org.jetbrains.compose.web.events.SyntheticTouchEvent
 import androidx.compose.web.events.SyntheticDragEvent
 import androidx.compose.web.events.SyntheticMouseEvent
@@ -67,3 +72,18 @@ internal actual class ClipboardEventListener actual constructor(
     event: String,
     listener: (SyntheticClipboardEvent) -> Unit
 ) : SyntheticEventListener<SyntheticClipboardEvent>(event, listener)
+
+internal actual class InputEventListener<InputValueType, Target> actual constructor(
+    eventName: String,
+    actual val inputType: InputType<InputValueType>,
+    listener: (SyntheticInputEvent<InputValueType, Target>) -> Unit
+) : SyntheticEventListener<SyntheticInputEvent<InputValueType, Target>>(eventName, listener)
+
+internal actual class ChangeEventListener<InputValueType, Target> actual constructor(
+    actual val inputType: InputType<InputValueType>,
+    listener: (SyntheticChangeEvent<InputValueType, Target>) -> Unit
+) : SyntheticEventListener<SyntheticChangeEvent<InputValueType, Target>>(CHANGE, listener)
+
+internal actual class SelectEventListener<Target> actual constructor(
+    listener: (SyntheticSelectEvent<Target>) -> Unit
+) : SyntheticEventListener<SyntheticSelectEvent<Target>>(SELECT, listener)

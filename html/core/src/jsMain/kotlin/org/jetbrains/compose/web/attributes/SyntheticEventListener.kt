@@ -5,7 +5,6 @@ import androidx.compose.web.events.SyntheticEvent
 import androidx.compose.web.events.SyntheticMouseEvent
 import androidx.compose.web.events.SyntheticWheelEvent
 import org.jetbrains.compose.web.attributes.EventsListenerScope.Companion.CHANGE
-import org.jetbrains.compose.web.attributes.EventsListenerScope.Companion.INPUT
 import org.jetbrains.compose.web.attributes.EventsListenerScope.Companion.SELECT
 import org.jetbrains.compose.web.events.*
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
@@ -116,12 +115,13 @@ internal actual class ClipboardEventListener actual constructor(
     }
 }
 
-// Not part of the common EventsListenerScope surface (only used by InputAttrsScope.kt, which is
-// jsMain-only / tied to the jsMain-only InputType), so these stay plain jsMain classes extending
-// the now-actualized SyntheticEventListener base -- no expect/actual split needed.
-internal class InputEventListener<InputValueType, Target : EventTarget>(
-    eventName: String = INPUT,
-    val inputType: InputType<InputValueType>,
+// Moved to the commonMain/jsMain/jvmMain expect/actual split (task 2.5): see the commonMain file
+// for the rationale. Real handleEvent bodies preserved byte-for-byte from the pre-split jsMain
+// classes; the unused `eventName` default on InputEventListener was dropped (no call site relied
+// on it).
+internal actual class InputEventListener<InputValueType, Target> actual constructor(
+    eventName: String,
+    actual val inputType: InputType<InputValueType>,
     listener: (SyntheticInputEvent<InputValueType, Target>) -> Unit
 ) : SyntheticEventListener<SyntheticInputEvent<InputValueType, Target>>(
     eventName, listener
@@ -132,8 +132,8 @@ internal class InputEventListener<InputValueType, Target : EventTarget>(
     }
 }
 
-internal class ChangeEventListener<InputValueType, Target : EventTarget>(
-    val inputType: InputType<InputValueType>,
+internal actual class ChangeEventListener<InputValueType, Target> actual constructor(
+    actual val inputType: InputType<InputValueType>,
     listener: (SyntheticChangeEvent<InputValueType, Target>) -> Unit
 ) : SyntheticEventListener<SyntheticChangeEvent<InputValueType, Target>>(
     CHANGE, listener
@@ -144,7 +144,7 @@ internal class ChangeEventListener<InputValueType, Target : EventTarget>(
     }
 }
 
-internal class SelectEventListener<Target : EventTarget>(
+internal actual class SelectEventListener<Target> actual constructor(
     listener: (SyntheticSelectEvent<Target>) -> Unit
 ) : SyntheticEventListener<SyntheticSelectEvent<Target>>(
     SELECT, listener

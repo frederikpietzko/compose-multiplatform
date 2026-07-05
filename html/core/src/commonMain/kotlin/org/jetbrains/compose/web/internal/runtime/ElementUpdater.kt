@@ -7,6 +7,7 @@ package org.jetbrains.compose.web.internal.runtime
 
 import org.jetbrains.compose.web.css.StyleHolder
 import org.jetbrains.compose.web.dom.DomElement
+import org.jetbrains.compose.web.dom.DomText
 
 // The expect/actual application seam for element updates (task 2.3). Replaces the former
 // jsMain-only `DomElementWrapper` (org.jetbrains.compose.web.dom.Base.kt) so that
@@ -33,3 +34,7 @@ expect fun NativeNode.applyProps(updates: List<Pair<(DomElement, Any) -> Unit, A
 
 @ComposeWebInternalApi
 expect fun NativeNode.applyEventListeners(listeners: List<NamedEventListener>)
+
+// Backs the Text() composable's text-content write (task 2.5): JS writes to the real Text node's
+// `data` property; JVM writes to JvmTextNode's plain `text` field (see NativeNode.jvm.kt).
+expect fun DomText.setTextData(value: String)

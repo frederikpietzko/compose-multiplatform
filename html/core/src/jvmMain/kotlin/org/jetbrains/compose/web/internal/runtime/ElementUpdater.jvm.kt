@@ -7,6 +7,7 @@ package org.jetbrains.compose.web.internal.runtime
 
 import org.jetbrains.compose.web.css.StyleHolder
 import org.jetbrains.compose.web.dom.DomElement
+import org.jetbrains.compose.web.dom.DomText
 
 // SSR has no live DOM: attrs/classes/styles are written into JvmElement's plain maps so they can
 // later be serialized to HTML; applyProps/applyEventListeners are inert (no live element
@@ -34,3 +35,7 @@ actual fun NativeNode.applyProps(updates: List<Pair<(DomElement, Any) -> Unit, A
 
 @ComposeWebInternalApi
 actual fun NativeNode.applyEventListeners(listeners: List<NamedEventListener>) { /* inert: SSR */ }
+
+actual fun DomText.setTextData(value: String) {
+    this.text = value
+}

@@ -7,6 +7,7 @@ package org.jetbrains.compose.web.internal.runtime
 
 import org.jetbrains.compose.web.css.StyleHolder
 import org.jetbrains.compose.web.dom.DomElement
+import org.jetbrains.compose.web.dom.DomText
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.css.ElementCSSInlineStyle
@@ -88,4 +89,8 @@ actual fun NativeNode.applyEventListeners(listeners: List<NamedEventListener>) {
     listeners.forEach {
         addEventListener(it.name, it)
     }
+}
+
+actual fun DomText.setTextData(value: String) {
+    this.data = value
 }

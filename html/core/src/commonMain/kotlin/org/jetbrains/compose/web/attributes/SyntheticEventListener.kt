@@ -5,14 +5,18 @@
 
 package org.jetbrains.compose.web.attributes
 
+import androidx.compose.web.events.NativeEventTarget
 import androidx.compose.web.events.SyntheticDragEvent
 import androidx.compose.web.events.SyntheticEvent
 import androidx.compose.web.events.SyntheticMouseEvent
 import androidx.compose.web.events.SyntheticWheelEvent
 import org.jetbrains.compose.web.events.SyntheticAnimationEvent
+import org.jetbrains.compose.web.events.SyntheticChangeEvent
 import org.jetbrains.compose.web.events.SyntheticClipboardEvent
 import org.jetbrains.compose.web.events.SyntheticFocusEvent
+import org.jetbrains.compose.web.events.SyntheticInputEvent
 import org.jetbrains.compose.web.events.SyntheticKeyboardEvent
+import org.jetbrains.compose.web.events.SyntheticSelectEvent
 import org.jetbrains.compose.web.events.SyntheticTouchEvent
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 import org.jetbrains.compose.web.internal.runtime.NamedEventListener
@@ -85,3 +89,29 @@ internal expect class ClipboardEventListener(
     event: String,
     listener: (SyntheticClipboardEvent) -> Unit
 ) : SyntheticEventListener<SyntheticClipboardEvent>
+
+// Moved from jsMain to commonMain (task 2.5), needed by InputAttrsScope/TextAreaAttrsScope which
+// are also moving to commonMain. Target is unconstrained (not the JS-only EventTarget, and not
+// NativeEventTarget either): call sites parameterize it on the commonMain HTMLInputElement/
+// HTMLTextAreaElement DomHtmlElement subtypes, which are a separate expect hierarchy from
+// NativeEventTarget -- see SyntheticEvent.kt for the full rationale. The `eventName` default that
+// InputEventListener had in jsMain was never relied on (every call site passes it explicitly) so
+// it's dropped here.
+internal expect class InputEventListener<InputValueType, Target>(
+    eventName: String,
+    inputType: InputType<InputValueType>,
+    listener: (SyntheticInputEvent<InputValueType, Target>) -> Unit
+) : SyntheticEventListener<SyntheticInputEvent<InputValueType, Target>> {
+    val inputType: InputType<InputValueType>
+}
+
+internal expect class ChangeEventListener<InputValueType, Target>(
+    inputType: InputType<InputValueType>,
+    listener: (SyntheticChangeEvent<InputValueType, Target>) -> Unit
+) : SyntheticEventListener<SyntheticChangeEvent<InputValueType, Target>> {
+    val inputType: InputType<InputValueType>
+}
+
+internal expect class SelectEventListener<Target>(
+    listener: (SyntheticSelectEvent<Target>) -> Unit
+) : SyntheticEventListener<SyntheticSelectEvent<Target>>

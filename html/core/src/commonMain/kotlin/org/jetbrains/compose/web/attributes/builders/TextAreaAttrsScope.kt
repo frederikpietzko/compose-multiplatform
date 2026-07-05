@@ -18,7 +18,8 @@ import org.jetbrains.compose.web.attributes.setTextAreaDefaultValue
 import org.jetbrains.compose.web.events.SyntheticChangeEvent
 import org.jetbrains.compose.web.events.SyntheticInputEvent
 import org.jetbrains.compose.web.events.SyntheticSelectEvent
-import org.w3c.dom.HTMLTextAreaElement
+import org.jetbrains.compose.web.dom.HTMLTextAreaElement
+import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 
 @Deprecated(
     message = "Renamed to TextAreaAttrsScope",
@@ -38,24 +39,28 @@ class TextAreaAttrsScope(attrsScope: AttrsScope<HTMLTextAreaElement>) : AttrsSco
         return this
     }
 
+    @OptIn(ComposeWebInternalApi::class)
     fun onInput(
         listener: (SyntheticInputEvent<String, HTMLTextAreaElement>) -> Unit
     ) {
         registerEventListener(InputEventListener(INPUT, InputType.Text, listener))
     }
 
+    @OptIn(ComposeWebInternalApi::class)
     fun onChange(
         listener: (SyntheticChangeEvent<String, HTMLTextAreaElement>) -> Unit
     ) {
         registerEventListener(ChangeEventListener(InputType.Text, listener))
     }
 
+    @OptIn(ComposeWebInternalApi::class)
     fun onBeforeInput(
         listener: (SyntheticInputEvent<String, HTMLTextAreaElement>) -> Unit
     ) {
         registerEventListener(InputEventListener(BEFOREINPUT, InputType.Text, listener))
     }
 
+    @OptIn(ComposeWebInternalApi::class)
     fun onSelect(
         listener: (SyntheticSelectEvent<HTMLTextAreaElement>) -> Unit
     ) {

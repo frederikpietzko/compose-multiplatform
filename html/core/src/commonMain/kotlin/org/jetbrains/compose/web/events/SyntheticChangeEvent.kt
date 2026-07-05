@@ -6,11 +6,11 @@
 package org.jetbrains.compose.web.events
 
 import androidx.compose.web.events.NativeEvent
-import androidx.compose.web.events.NativeEventTarget
 import androidx.compose.web.events.SyntheticEvent
 
 // Moved from jsMain to commonMain (task 2.4): org.w3c.dom.events.Event/EventTarget -> Native*.
-class SyntheticChangeEvent<Value, Element : NativeEventTarget> internal constructor(
+// Element's bound widened to unconstrained in task 2.5 -- see SyntheticEvent.kt for the rationale.
+class SyntheticChangeEvent<Value, Element> internal constructor(
     val value: Value,
     nativeEvent: NativeEvent,
 ) : SyntheticEvent<Element>(nativeEvent)

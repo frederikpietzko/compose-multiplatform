@@ -27,6 +27,12 @@ internal actual fun NativeKeyboardEvent.readLocale(): String = asDynamic().local
 internal actual fun NativeEventTarget?.readInputValueOrNull(): String? =
     this?.asDynamic()?.value?.unsafeCast<String?>()
 
+internal actual fun NativeEventTarget?.readCheckedOrNull(): Boolean? =
+    this?.asDynamic()?.checked?.unsafeCast<Boolean?>()
+
+internal actual fun NativeEventTarget?.readValueAsNumberOrNull(): Number? =
+    this?.asDynamic()?.valueAsNumber?.unsafeCast<Number?>()
+
 internal actual fun extractInputEventDetails(nativeEvent: NativeEvent): InputEventDetails {
     val dyn = nativeEvent.asDynamic()
     return InputEventDetails(

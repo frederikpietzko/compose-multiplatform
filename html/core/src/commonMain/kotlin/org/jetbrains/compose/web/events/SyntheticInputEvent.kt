@@ -7,7 +7,6 @@ package org.jetbrains.compose.web.events
 
 import androidx.compose.web.events.NativeDataTransfer
 import androidx.compose.web.events.NativeEvent
-import androidx.compose.web.events.NativeEventTarget
 import androidx.compose.web.events.SyntheticEvent
 import androidx.compose.web.events.extractInputEventDetails
 
@@ -20,7 +19,12 @@ import androidx.compose.web.events.extractInputEventDetails
 // data/dataTransfer/inputType/isComposing aren't reliably present on every native event that can
 // reach here, so (as in the original jsMain code) they're read dynamically -- via the
 // extractInputEventDetails expect fun -- rather than declared as real NativeEvent members.
-class SyntheticInputEvent<ValueType, Element : NativeEventTarget> internal constructor(
+//
+// Element's bound was NativeEventTarget through task 2.4; task 2.5 widens it to unconstrained so
+// InputAttrsScope/TextAreaAttrsScope can parameterize it on their commonMain HTMLInputElement/
+// HTMLTextAreaElement (DomHtmlElement subtypes, a separate expect hierarchy from
+// NativeEventTarget) -- see SyntheticEvent.kt for the full rationale.
+class SyntheticInputEvent<ValueType, Element> internal constructor(
     val value: ValueType,
     nativeEvent: NativeEvent
 ) : SyntheticEvent<Element>(

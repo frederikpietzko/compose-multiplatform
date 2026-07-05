@@ -134,6 +134,13 @@ internal expect fun NativeKeyboardEvent.readLocale(): String
 // HTMLInputElement/HTMLTextAreaElement, but SyntheticSelectEvent only needs `.value`).
 internal expect fun NativeEventTarget?.readInputValueOrNull(): String?
 
+// event.target's `.checked`/`.valueAsNumber`, read dynamically for the same reason as
+// readInputValueOrNull above -- used by InputType.InputTypeCheckedValue/InputTypeNumberValue
+// (attributes/PredefinedAttrValues.kt, task 2.5) to read a checkbox/radio's checked state or a
+// number/range input's numeric value out of the native change/input event.
+internal expect fun NativeEventTarget?.readCheckedOrNull(): Boolean?
+internal expect fun NativeEventTarget?.readValueAsNumberOrNull(): Number?
+
 // SyntheticInputEvent reads a handful of fields off the raw native event that either aren't
 // present on org.w3c.dom.events.Event, or (per the original comment) may not be present depending
 // on which concrete event actually fired -- both read dynamically in the JS actual.

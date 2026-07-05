@@ -2,6 +2,12 @@ package org.jetbrains.compose.web.css
 
 import org.jetbrains.compose.web.css.selectors.*
 
+// LanguageCode is a plain String typealias (no browser coupling) split out of the jsMain-only
+// CSSEnums.kt so SelectorsScope.lang(...) can move to commonMain (task 2.5); the rest of
+// CSSEnums.kt's branded-string enum types still rely on JS's zero-cost `external interface`
+// trick and need a JVM boxed-holder design before they can move (deferred, see task-2.5 report).
+typealias LanguageCode = String
+
 interface CSSRulesHolder {
     val cssRules: CSSRuleDeclarationList
     fun add(cssRule: CSSRuleDeclaration)
@@ -10,28 +16,23 @@ interface CSSRulesHolder {
     }
 }
 
-interface GenericStyleSheetBuilder<TBuilder> : CSSRulesHolder, SelectorsScope {
+// expect/actual (task 2.5): only the two members every builder implementation must genuinely
+// supply (buildRules, style) are declared here. The convenience extension-sugar members
+// (CSSSelector.invoke, String.invoke, String.style, and JS's extra infix CSSSelector.style) are
+// *not* part of this expect contract -- Kotlin requires an expect interface member's actual
+// counterpart to keep the same (abstract) modality, so a default-bodied "actual" isn't legal here.
+// Instead each platform actual (StyleSheetBuilder.js.kt / StyleSheetBuilder.jvm.kt) declares those
+// sugar members itself, as plain (non-actual) default methods. On the JVM target,
+// `infix fun CSSSelector.style(...)` would erase to the exact same JVM signature as the plain
+// `style(selector, cssRule)` member below ("Platform declaration clash") -- the JVM backend has no
+// equivalent of JS's separate extension-receiver mangling -- so only the JVM actual omits it;
+// JVM callers use the equivalent `style(selector) { ... }` member call instead.
+expect interface GenericStyleSheetBuilder<TBuilder> : CSSRulesHolder, SelectorsScope {
     fun buildRules(
         rulesBuild: GenericStyleSheetBuilder<TBuilder>.() -> Unit
     ): CSSRuleDeclarationList
 
     fun style(selector: CSSSelector, cssRule: TBuilder.() -> Unit)
-
-    operator fun CSSSelector.invoke(cssRule: TBuilder.() -> Unit) {
-        style(this, cssRule)
-    }
-
-    infix fun CSSSelector.style(cssRule: TBuilder.() -> Unit) {
-        style(this, cssRule)
-    }
-
-    operator fun String.invoke(cssRule: TBuilder.() -> Unit) {
-        style(RawSelector(this), cssRule)
-    }
-
-    infix fun String.style(cssRule: TBuilder.() -> Unit) {
-        style(RawSelector(this), cssRule)
-    }
 }
 
 private val Universal = RawSelector("*")
@@ -61,7 +62,10 @@ interface SelectorsScope {
         }
     }
 
-    @JsName("returnUniversalSelector")
+    // @JsName("returnUniversalSelector") dropped when moving to commonMain (task 2.5): kotlin.js.JsName
+    // isn't available outside the JS target. It only affected the mangled JS export name of this
+    // already-@Deprecated shim (disambiguating it from the `universal` property below on the JS
+    // backend); dropping it doesn't change the Kotlin-level API/source compatibility.
     @Deprecated("Use universal property", replaceWith = ReplaceWith("universal"))
     fun universal(): CSSSelector = Universal
 
@@ -110,7 +114,7 @@ interface SelectorsScope {
     fun sibling(sibling: CSSSelector, selected: CSSSelector): CSSSelector = Sibling(sibling, selected)
     fun adjacent(sibling: CSSSelector, selected: CSSSelector): CSSSelector = Adjacent(sibling, selected)
 
-    @JsName("returnHoverSelector")
+    // @JsName("returnHoverSelector") dropped for the same reason as universal() above.
     @Deprecated("Use hover property", replaceWith = ReplaceWith("hover"))
     fun hover(): CSSSelector = hover
     fun hover(selector: CSSSelector): CSSSelector = selector + hover
@@ -242,7 +246,9 @@ interface SelectorsScope {
     fun slotted(selector: CSSSelector): CSSSelector = PseudoElementInternal.Slotted(selector)
 }
 
-private data class RawSelector(val selector: String) : CSSSelector() {
+// internal (not private): the JS/JVM actuals of GenericStyleSheetBuilder (StyleSheetBuilder.js.kt /
+// StyleSheetBuilder.jvm.kt) construct this from their own default-method bodies.
+internal data class RawSelector(val selector: String) : CSSSelector() {
     override fun toString(): String = selector
 }
 

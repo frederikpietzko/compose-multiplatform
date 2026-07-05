@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 JetBrains s.r.o. and respective authors and developers.
+ * Copyright 2020-2026 JetBrains s.r.o. and respective authors and developers.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE.txt file.
  */
 
@@ -14,10 +14,9 @@ import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.HTMLTextAreaElement
 
-
 private val controlledInputsValuesWeakMap: JsWeakMap = js("new WeakMap();").unsafeCast<JsWeakMap>()
 
-internal fun restoreControlledInputState(inputElement: HTMLInputElement) {
+internal actual fun restoreControlledInputState(inputElement: HTMLInputElement) {
     val type = InputType.fromString(inputElement.type)
 
     if (controlledInputsValuesWeakMap.has(inputElement)) {
@@ -37,13 +36,13 @@ internal fun restoreControlledInputState(inputElement: HTMLInputElement) {
     }
 }
 
-internal fun restoreControlledTextAreaState(element: HTMLTextAreaElement) {
+internal actual fun restoreControlledTextAreaState(element: HTMLTextAreaElement) {
     if (controlledInputsValuesWeakMap.has(element)) {
         element.value = controlledInputsValuesWeakMap.get(element).toString()
     }
 }
 
-internal fun <V : Any> saveControlledInputState(element: HTMLElement, value: V) {
+internal actual fun <V : Any> saveControlledInputState(element: HTMLElement, value: V) {
     controlledInputsValuesWeakMap.set(element, value)
 
     if (element is HTMLInputElement) {
@@ -65,7 +64,7 @@ private fun updateRadioGroupIfNeeded(element: HTMLInputElement) {
 
 @Composable
 @NonRestartableComposable
-internal fun ElementScope<HTMLInputElement>.DisposeRadioGroupEffect() {
+internal actual fun ElementScope<HTMLInputElement>.DisposeRadioGroupEffect() {
     DisposableEffect(null) {
         val ref = scopeElement
         onDispose {
@@ -75,4 +74,12 @@ internal fun ElementScope<HTMLInputElement>.DisposeRadioGroupEffect() {
             }
         }
     }
+}
+
+// Relocated from InputAttrsScope.kt (task 2.5): only used by the WeakMap above, which is jsMain-only.
+internal external interface JsWeakMap {
+    fun delete(key: Any)
+    fun get(key: Any): Any?
+    fun has(key: Any): Boolean
+    fun set(key: Any, value: Any): JsWeakMap
 }

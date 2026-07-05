@@ -9,7 +9,18 @@ package androidx.compose.web.events
 // Native*/NativeEventTarget expect seam declared in NativeEvent.kt. `target` is obtained via an
 // unchecked cast (same as the original `unsafeCast<Element>()`, just spelled with a regular `as`
 // -- an unchecked cast on an erased generic type parameter behaves the same way on every target).
-open class SyntheticEvent<Element : NativeEventTarget> internal constructor(
+//
+// Element's upper bound was NativeEventTarget through task 2.4, tightening it to "the thing a
+// native event's target actually is". Task 2.5 widens it back to unconstrained: SyntheticInputEvent
+// /SyntheticChangeEvent/SyntheticSelectEvent are parameterized on the concrete *element* type
+// (e.g. HTMLInputElement) so InputAttrsScope/TextAreaAttrsScope/SelectAttrsScope can expose typed
+// onInput/onChange/onSelect callbacks -- and the commonMain DomElement/DomHtmlElement hierarchy
+// (task 2.1) is intentionally a separate expect hierarchy from NativeEventTarget (JVM's DomElement
+// chain is real JvmElement subclasses; NativeEventTarget is an empty marker actual class on JVM;
+// a class can't extend both without a deeper redesign). The cast below is already unchecked, so
+// this bound was never load-bearing for correctness -- only for expressiveness -- and widening it
+// is a source-compatible relaxation.
+open class SyntheticEvent<Element> internal constructor(
     val nativeEvent: NativeEvent
 ) {
     @Suppress("UNCHECKED_CAST")
