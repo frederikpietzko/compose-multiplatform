@@ -79,3 +79,28 @@ even if `content` throws.
 5. **Hydration is out of scope.** `renderToString` produces static markup only. Making that
    markup interactive in the browser (attaching event listeners, resuming state, etc.) is a
    separate, future effort — it is not part of this JVM SSR support.
+
+## Migration note for existing JS consumers
+
+Making the element type hierarchy (`HTMLDivElement`, `HTMLInputElement`, `HTMLSpanElement`, etc.)
+available on both targets required moving those names into common code: they now live in
+`org.jetbrains.compose.web.dom` (as `expect` types, JS-actualized to the identical
+`org.w3c.dom.HTMLXxxElement` types they always were). This is **binary-compatible** — JS
+artifacts still resolve to `org.w3c.dom.HTMLXxxElement` at the bytecode/JS level — but it is a
+**source-compatibility hazard** for existing JS-only code that does:
+
+```kotlin
+import org.jetbrains.compose.web.dom.*
+import org.w3c.dom.*
+```
+
+Both wildcard imports now bring an `HTMLXxxElement` name into scope for the same identifier (e.g.
+`HTMLDivElement`), which Kotlin reports as an unresolved reference due to import ambiguity. The
+fix is to replace the wildcard for the specific type(s) you use with an explicit import of the
+`org.w3c.dom` name, e.g.:
+
+```kotlin
+import org.w3c.dom.HTMLDivElement // explicit import wins over the ambiguous wildcard
+```
+
+No other code changes are required — the underlying type is unchanged.
