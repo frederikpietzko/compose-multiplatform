@@ -7,20 +7,12 @@ package org.jetbrains.compose.web
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Composition
-import androidx.compose.runtime.ControlledComposition
 import androidx.compose.runtime.DefaultMonotonicFrameClock
-import androidx.compose.runtime.DisposableEffectScope
 import androidx.compose.runtime.MonotonicFrameClock
-import androidx.compose.runtime.Recomposer
 import kotlinx.browser.document
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.dom.DOMScope
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
-import org.jetbrains.compose.web.internal.runtime.DomApplier
 import org.jetbrains.compose.web.internal.runtime.GlobalSnapshotManager
-import org.jetbrains.compose.web.internal.runtime.NativeNodeWrapper
 import org.jetbrains.compose.web.internal.runtime.JsMicrotasksDispatcher
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLBodyElement
@@ -42,25 +34,12 @@ fun <TElement : Element> renderComposable(
 ): Composition {
     GlobalSnapshotManager.ensureStarted()
 
-    val context = monotonicFrameClock + JsMicrotasksDispatcher()
-    val recomposer = Recomposer(context)
-
-    CoroutineScope(context).launch(start = CoroutineStart.UNDISPATCHED) {
-        recomposer.runRecomposeAndApplyChanges()
-    }
-
-    val composition = ControlledComposition(
-        applier = DomApplier(NativeNodeWrapper(root)),
-        parent = recomposer
+    return renderComposableRoot(
+        root = root,
+        monotonicFrameClock = monotonicFrameClock,
+        dispatcher = JsMicrotasksDispatcher(),
+        content = content
     )
-    val scope = object : DOMScope<TElement> {
-        override val DisposableEffectScope.scopeElement: TElement
-            get() = root
-    }
-    composition.setContent @Composable {
-        content(scope)
-    }
-    return composition
 }
 
 /**
