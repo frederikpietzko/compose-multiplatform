@@ -1,18 +1,21 @@
+/*
+ * Copyright 2020-2026 JetBrains s.r.o. and respective authors and developers.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE.txt file.
+ */
+
 package androidx.compose.web.events
 
-import org.w3c.dom.DataTransfer
-import org.w3c.dom.DragEvent
-import org.w3c.dom.HTMLElement
-import org.w3c.dom.events.EventTarget
-import org.w3c.dom.events.MouseEvent
-import org.w3c.dom.events.WheelEvent
+// Moved from jsMain to commonMain (task 2.4): org.w3c.dom.* -> the Native* expect seam declared in
+// NativeEvent.kt. movementX/movementY aren't part of Kotlin's org.w3c.dom.events.MouseEvent
+// binding (see https://youtrack.jetbrains.com/issue/CMP-5304), so they're still read through a
+// small per-platform expect fun rather than a Native type member.
 
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent
  */
 open class SyntheticMouseEvent internal constructor(
-    nativeEvent: MouseEvent
-) : SyntheticEvent<EventTarget>(nativeEvent) {
+    nativeEvent: NativeMouseEvent
+) : SyntheticEvent<NativeEventTarget>(nativeEvent) {
 
     private val mouseEvent = nativeEvent
 
@@ -24,17 +27,15 @@ open class SyntheticMouseEvent internal constructor(
     val ctrlKey: Boolean = nativeEvent.ctrlKey
     val metaKey: Boolean = nativeEvent.metaKey
 
-    // https://youtrack.jetbrains.com/issue/CMP-5304
-    // movementX and movementY are undefined in SafariMobile MouseEvent
-    val movementX: Int = (nativeEvent.asDynamic().movementX as? Int) ?: 0
-    val movementY: Int = (nativeEvent.asDynamic().movementY as? Int) ?: 0
+    val movementX: Int = nativeEvent.readMovementX()
+    val movementY: Int = nativeEvent.readMovementY()
 
     val offsetX: Double = nativeEvent.offsetX
     val offsetY: Double = nativeEvent.offsetY
     val pageX: Double = nativeEvent.pageX
     val pageY: Double = nativeEvent.pageY
     val region: String? = nativeEvent.region
-    val relatedTarget: EventTarget? = nativeEvent.relatedTarget
+    val relatedTarget: NativeEventTarget? = nativeEvent.relatedTarget
     val screenX: Int = nativeEvent.screenX
     val screenY: Int = nativeEvent.screenY
     val shiftKey: Boolean = nativeEvent.shiftKey
@@ -49,7 +50,7 @@ open class SyntheticMouseEvent internal constructor(
  * https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent
  */
 class SyntheticWheelEvent(
-    nativeEvent: WheelEvent
+    nativeEvent: NativeWheelEvent
 ) : SyntheticMouseEvent(
     nativeEvent
 ) {
@@ -63,9 +64,9 @@ class SyntheticWheelEvent(
  * https://developer.mozilla.org/en-US/docs/Web/API/DragEvent
  */
 class SyntheticDragEvent(
-    nativeEvent: DragEvent
+    nativeEvent: NativeDragEvent
 ) : SyntheticMouseEvent(
     nativeEvent
 ) {
-    val dataTransfer: DataTransfer? = nativeEvent.dataTransfer
+    val dataTransfer: NativeDataTransfer? = nativeEvent.dataTransfer
 }

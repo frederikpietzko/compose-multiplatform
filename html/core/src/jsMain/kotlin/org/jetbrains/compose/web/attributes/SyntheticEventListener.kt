@@ -1,6 +1,5 @@
 package org.jetbrains.compose.web.attributes
 
-import org.jetbrains.compose.web.events.SyntheticInputEvent
 import androidx.compose.web.events.SyntheticDragEvent
 import androidx.compose.web.events.SyntheticEvent
 import androidx.compose.web.events.SyntheticMouseEvent
@@ -16,21 +15,34 @@ import org.w3c.dom.TouchEvent
 import org.w3c.dom.clipboard.ClipboardEvent
 import org.w3c.dom.events.*
 
+// The class stays actual-abstract (rather than providing a concrete handleEvent override here)
+// because handleEvent is an obligation that comes solely from NamedEventListener's JS-only
+// EventListener supertype -- it has no counterpart at all in the commonMain expect declaration.
+// Kotlin's expect/actual checker rejects an actual class concretely implementing such an
+// "invisible to common" abstract member at the same class that pairs with the expect declaration
+// ("the modalities are different ('abstract' vs 'open')"); it's fine, though, for a *further* JS
+// actual subclass (GenericEventListener, AnimationEventListener, MouseEventListener, ...) to
+// concretely override it, since by then it's an ordinary override of an already-actual-declared
+// member rather than a fresh implementation of a member absent from expect.
 @OptIn(ComposeWebInternalApi::class)
-open class SyntheticEventListener<T : SyntheticEvent<*>> internal constructor(
-    val event: String,
-    val listener: (T) -> Unit
-) : EventListener, NamedEventListener {
+actual abstract class SyntheticEventListener<T : SyntheticEvent<*>> internal actual constructor(
+    actual val event: String,
+    actual val listener: (T) -> Unit
+) : NamedEventListener {
+    actual override val name: String = event
+}
 
-    override val name: String = event
-
+internal actual class GenericEventListener<T : SyntheticEvent<*>> actual constructor(
+    event: String,
+    listener: (T) -> Unit
+) : SyntheticEventListener<T>(event, listener) {
     @Suppress("UNCHECKED_CAST")
     override fun handleEvent(event: Event) {
         listener(SyntheticEvent<EventTarget>(event).unsafeCast<T>())
     }
 }
 
-internal class AnimationEventListener(
+internal actual class AnimationEventListener actual constructor(
     event: String,
     listener: (SyntheticAnimationEvent) -> Unit
 ) : SyntheticEventListener<SyntheticAnimationEvent>(
@@ -41,7 +53,7 @@ internal class AnimationEventListener(
     }
 }
 
-internal class MouseEventListener(
+internal actual class MouseEventListener actual constructor(
     event: String,
     listener: (SyntheticMouseEvent) -> Unit
 ) : SyntheticEventListener<SyntheticMouseEvent>(event, listener) {
@@ -50,7 +62,7 @@ internal class MouseEventListener(
     }
 }
 
-internal class MouseWheelEventListener(
+internal actual class MouseWheelEventListener actual constructor(
     event: String,
     listener: (SyntheticWheelEvent) -> Unit
 ) : SyntheticEventListener<SyntheticWheelEvent>(event, listener) {
@@ -59,7 +71,7 @@ internal class MouseWheelEventListener(
     }
 }
 
-internal class KeyboardEventListener(
+internal actual class KeyboardEventListener actual constructor(
     event: String,
     listener: (SyntheticKeyboardEvent) -> Unit
 ) : SyntheticEventListener<SyntheticKeyboardEvent>(event, listener) {
@@ -68,7 +80,7 @@ internal class KeyboardEventListener(
     }
 }
 
-internal class FocusEventListener(
+internal actual class FocusEventListener actual constructor(
     event: String,
     listener: (SyntheticFocusEvent) -> Unit
 ) : SyntheticEventListener<SyntheticFocusEvent>(event, listener) {
@@ -77,7 +89,7 @@ internal class FocusEventListener(
     }
 }
 
-internal class TouchEventListener(
+internal actual class TouchEventListener actual constructor(
     event: String,
     listener: (SyntheticTouchEvent) -> Unit
 ) : SyntheticEventListener<SyntheticTouchEvent>(event, listener) {
@@ -86,7 +98,7 @@ internal class TouchEventListener(
     }
 }
 
-internal class DragEventListener(
+internal actual class DragEventListener actual constructor(
     event: String,
     listener: (SyntheticDragEvent) -> Unit
 ) : SyntheticEventListener<SyntheticDragEvent>(event, listener) {
@@ -95,7 +107,7 @@ internal class DragEventListener(
     }
 }
 
-internal class ClipboardEventListener(
+internal actual class ClipboardEventListener actual constructor(
     event: String,
     listener: (SyntheticClipboardEvent) -> Unit
 ) : SyntheticEventListener<SyntheticClipboardEvent>(event, listener) {
@@ -104,7 +116,10 @@ internal class ClipboardEventListener(
     }
 }
 
-internal class InputEventListener<InputValueType, Target: EventTarget>(
+// Not part of the common EventsListenerScope surface (only used by InputAttrsScope.kt, which is
+// jsMain-only / tied to the jsMain-only InputType), so these stay plain jsMain classes extending
+// the now-actualized SyntheticEventListener base -- no expect/actual split needed.
+internal class InputEventListener<InputValueType, Target : EventTarget>(
     eventName: String = INPUT,
     val inputType: InputType<InputValueType>,
     listener: (SyntheticInputEvent<InputValueType, Target>) -> Unit
@@ -117,7 +132,7 @@ internal class InputEventListener<InputValueType, Target: EventTarget>(
     }
 }
 
-internal class ChangeEventListener<InputValueType, Target: EventTarget>(
+internal class ChangeEventListener<InputValueType, Target : EventTarget>(
     val inputType: InputType<InputValueType>,
     listener: (SyntheticChangeEvent<InputValueType, Target>) -> Unit
 ) : SyntheticEventListener<SyntheticChangeEvent<InputValueType, Target>>(
@@ -129,13 +144,17 @@ internal class ChangeEventListener<InputValueType, Target: EventTarget>(
     }
 }
 
-internal class SelectEventListener<Target: EventTarget>(
+internal class SelectEventListener<Target : EventTarget>(
     listener: (SyntheticSelectEvent<Target>) -> Unit
 ) : SyntheticEventListener<SyntheticSelectEvent<Target>>(
     SELECT, listener
 ) {
     override fun handleEvent(event: Event) {
-        listener(SyntheticSelectEvent(event, event.target.unsafeCast<SelectionInfoDetails>()))
+        val target = event.target.asDynamic()
+        val selectionInfoDetails = SelectionInfoDetails(
+            selectionStart = (target.selectionStart as? Int) ?: 0,
+            selectionEnd = (target.selectionEnd as? Int) ?: 0
+        )
+        listener(SyntheticSelectEvent(event, selectionInfoDetails))
     }
 }
-
