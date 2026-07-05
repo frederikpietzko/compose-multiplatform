@@ -33,12 +33,6 @@ kotlin {
             }
         }
 
-        val jvmMain by getting {
-            dependencies {
-                implementation(libs.kotlinx.html)
-            }
-        }
-
         val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test-junit"))

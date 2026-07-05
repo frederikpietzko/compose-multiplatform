@@ -1,3 +1,8 @@
+/*
+ * Copyright 2020-2026 JetBrains s.r.o. and respective authors and developers.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE.txt file.
+ */
+
 import org.jetbrains.compose.web.internal.runtime.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -56,6 +61,42 @@ class HtmlSerializerTest {
         (root as NativeNode).children.add(input)
         assertEquals(
             """<input type="text" name="q" placeholder="he said &quot;hi&quot; &amp; &lt;bye&gt;">""",
+            serializeToHtml(root)
+        )
+    }
+
+    @Test
+    fun styleElementTextIsSerializedVerbatimAsRawText() {
+        val root = JvmRootNode()
+        val style = JvmElement("style")
+        (style as NativeNode).children.add(JvmTextNode("div > p { color: red; }"))
+        (root as NativeNode).children.add(style)
+        assertEquals(
+            "<style>div > p { color: red; }</style>",
+            serializeToHtml(root)
+        )
+    }
+
+    @Test
+    fun scriptElementTextIsSerializedVerbatimAsRawText() {
+        val root = JvmRootNode()
+        val script = JvmElement("script")
+        (script as NativeNode).children.add(JvmTextNode("if (a < b) {}"))
+        (root as NativeNode).children.add(script)
+        assertEquals(
+            "<script>if (a < b) {}</script>",
+            serializeToHtml(root)
+        )
+    }
+
+    @Test
+    fun normalElementTextIsStillEscaped() {
+        val root = JvmRootNode()
+        val div = JvmElement("div")
+        (div as NativeNode).children.add(JvmTextNode("a > b"))
+        (root as NativeNode).children.add(div)
+        assertEquals(
+            "<div>a &gt; b</div>",
             serializeToHtml(root)
         )
     }
