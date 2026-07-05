@@ -252,6 +252,18 @@ renderToString(content)
 - Actual on-screen JVM rendering (Skia/Compose Desktop).
 - wasm target.
 - Event dispatch on the JVM.
+- **Typed CSS DSL on the JVM (deferred — follow-up task).** As of the 2.x
+  migration, the typed CSS property DSL stays Kotlin/JS-only: `css/CSSUnits.kt`
+  (`5.px`, `em`, …), `Color`, `CSSKeywords`, `CSSEnums`, `CSSOperations`,
+  `CSSVariableValueAs`, all 19 `css/properties/*` helpers (`width()`, `color()`,
+  `padding()`, `flex*`, `grid*`, `transform()`, `transition()`, …), the
+  `StyleSheet` base-class authoring idiom, `CSSMediaRule`, and `CSSKeyframeRule`.
+  Porting these needs value-class rework (they are JS `external interface` +
+  `unsafeCast` zero-cost wrappers). **What DOES work on JVM:**
+  `StyleScope.property(name, value)` / `.variable(...)` raw string/number escape
+  hatch, `AttrsScope.style { ... }`, the full selector DSL, and `Style { }`
+  serialized into a `<style>` tag. Tracked as a follow-up: "Port typed CSS DSL to
+  commonMain for JVM SSR."
 
 ---
 
