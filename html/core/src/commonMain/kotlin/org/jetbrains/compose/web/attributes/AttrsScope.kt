@@ -2,20 +2,10 @@ package org.jetbrains.compose.web.attributes
 
 import androidx.compose.runtime.DisposableEffectResult
 import androidx.compose.runtime.DisposableEffectScope
-import androidx.compose.web.events.NativeEventTarget
-import androidx.compose.web.events.SyntheticDragEvent
-import androidx.compose.web.events.SyntheticEvent
-import androidx.compose.web.events.SyntheticMouseEvent
-import androidx.compose.web.events.SyntheticWheelEvent
 import org.jetbrains.compose.web.css.StyleScope
 import org.jetbrains.compose.web.css.StyleScopeBuilder
 import org.jetbrains.compose.web.dom.DomElement
 import org.jetbrains.compose.web.dom.DomHtmlElement
-import org.jetbrains.compose.web.events.SyntheticAnimationEvent
-import org.jetbrains.compose.web.events.SyntheticClipboardEvent
-import org.jetbrains.compose.web.events.SyntheticFocusEvent
-import org.jetbrains.compose.web.events.SyntheticKeyboardEvent
-import org.jetbrains.compose.web.events.SyntheticTouchEvent
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 
 // Moved from jsMain to commonMain (task 2.3): org.w3c.dom.Element -> DomElement,
@@ -24,14 +14,11 @@ import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 // further changes were needed there. Dropped the unused `setClassList` val at the bottom of the
 // original file (dead code, zero call sites, confirmed via grep before this move).
 //
-// The onClick/onMouseDown/etc. event-handler methods (plus addEventListener) were added here as
-// default-bodied interface members (task 2.4) rather than on EventsListenerScope itself, since
-// EventsListenerScope is an expect interface (can't hold default-bodied members) and AttrsScope
-// is its only real implementer in this codebase -- see the comment atop EventsListenerScope.kt
-// for the full rationale.
-private typealias SyntheticMouseEventListener = (SyntheticMouseEvent) -> Unit
-private typealias SyntheticWheelEventListener = (SyntheticWheelEvent) -> Unit
-private typealias SyntheticDragEventListener = (SyntheticDragEvent) -> Unit
+// The onClick/onMouseDown/etc. event-handler methods (plus addEventListener) briefly lived here as
+// default-bodied interface members (task 2.4), back when EventsListenerScope was still an expect
+// interface (which can't hold default-bodied members). Now that EventsListenerScope is a plain
+// common interface again (see the comment atop EventsListenerScope.kt), AttrsScope inherits that
+// full surface from EventsListenerScope directly, so the duplicate copies were removed from here.
 
 @Deprecated(
     message = "Renamed to AttrsScopeBuilder",
@@ -105,218 +92,6 @@ interface AttrsScope<out TElement : DomElement> : EventsListenerScope {
      * see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/inputmode
      */
     fun inputMode(value: InputMode) = attr("inputmode", value.str)
-
-    /* Mouse Events */
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onContextMenu(listener: SyntheticMouseEventListener) {
-        registerEventListener(MouseEventListener(EventsListenerScope.CONTEXTMENU, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onClick(listener: SyntheticMouseEventListener) {
-        registerEventListener(MouseEventListener(EventsListenerScope.CLICK, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onDoubleClick(listener: SyntheticMouseEventListener) {
-        registerEventListener(MouseEventListener(EventsListenerScope.DBLCLICK, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onMouseDown(listener: SyntheticMouseEventListener) {
-        registerEventListener(MouseEventListener(EventsListenerScope.MOUSEDOWN, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onMouseUp(listener: SyntheticMouseEventListener) {
-        registerEventListener(MouseEventListener(EventsListenerScope.MOUSEUP, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onMouseEnter(listener: SyntheticMouseEventListener) {
-        registerEventListener(MouseEventListener(EventsListenerScope.MOUSEENTER, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onMouseLeave(listener: SyntheticMouseEventListener) {
-        registerEventListener(MouseEventListener(EventsListenerScope.MOUSELEAVE, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onMouseMove(listener: SyntheticMouseEventListener) {
-        registerEventListener(MouseEventListener(EventsListenerScope.MOUSEMOVE, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onMouseOut(listener: SyntheticMouseEventListener) {
-        registerEventListener(MouseEventListener(EventsListenerScope.MOUSEOUT, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onMouseOver(listener: SyntheticMouseEventListener) {
-        registerEventListener(MouseEventListener(EventsListenerScope.MOUSEOVER, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onWheel(listener: SyntheticWheelEventListener) {
-        registerEventListener(MouseWheelEventListener(EventsListenerScope.WHEEL, listener))
-    }
-
-    /* Drag Events */
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onDrag(listener: SyntheticDragEventListener) {
-        registerEventListener(DragEventListener(EventsListenerScope.DRAG, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onDrop(listener: SyntheticDragEventListener) {
-        registerEventListener(DragEventListener(EventsListenerScope.DROP, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onDragStart(listener: SyntheticDragEventListener) {
-        registerEventListener(DragEventListener(EventsListenerScope.DRAGSTART, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onDragEnd(listener: SyntheticDragEventListener) {
-        registerEventListener(DragEventListener(EventsListenerScope.DRAGEND, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onDragOver(listener: SyntheticDragEventListener) {
-        registerEventListener(DragEventListener(EventsListenerScope.DRAGOVER, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onDragEnter(listener: SyntheticDragEventListener) {
-        registerEventListener(DragEventListener(EventsListenerScope.DRAGENTER, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onDragLeave(listener: SyntheticDragEventListener) {
-        registerEventListener(DragEventListener(EventsListenerScope.DRAGLEAVE, listener))
-    }
-
-    /* Clipboard Events */
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onCopy(listener: (SyntheticClipboardEvent) -> Unit) {
-        registerEventListener(ClipboardEventListener(EventsListenerScope.COPY, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onCut(listener: (SyntheticClipboardEvent) -> Unit) {
-        registerEventListener(ClipboardEventListener(EventsListenerScope.CUT, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onPaste(listener: (SyntheticClipboardEvent) -> Unit) {
-        registerEventListener(ClipboardEventListener(EventsListenerScope.PASTE, listener))
-    }
-
-    /* Keyboard Events */
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onKeyDown(listener: (SyntheticKeyboardEvent) -> Unit) {
-        registerEventListener(KeyboardEventListener(EventsListenerScope.KEYDOWN, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onKeyUp(listener: (SyntheticKeyboardEvent) -> Unit) {
-        registerEventListener(KeyboardEventListener(EventsListenerScope.KEYUP, listener))
-    }
-
-    /* Focus Events */
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onFocus(listener: (SyntheticFocusEvent) -> Unit) {
-        registerEventListener(FocusEventListener(EventsListenerScope.FOCUS, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onBlur(listener: (SyntheticFocusEvent) -> Unit) {
-        registerEventListener(FocusEventListener(EventsListenerScope.BLUR, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onFocusIn(listener: (SyntheticFocusEvent) -> Unit) {
-        registerEventListener(FocusEventListener(EventsListenerScope.FOCUSIN, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onFocusOut(listener: (SyntheticFocusEvent) -> Unit) {
-        registerEventListener(FocusEventListener(EventsListenerScope.FOCUSOUT, listener))
-    }
-
-    /* Touch Events */
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onTouchCancel(listener: (SyntheticTouchEvent) -> Unit) {
-        registerEventListener(TouchEventListener(EventsListenerScope.TOUCHCANCEL, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onTouchMove(listener: (SyntheticTouchEvent) -> Unit) {
-        registerEventListener(TouchEventListener(EventsListenerScope.TOUCHMOVE, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onTouchEnd(listener: (SyntheticTouchEvent) -> Unit) {
-        registerEventListener(TouchEventListener(EventsListenerScope.TOUCHEND, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onTouchStart(listener: (SyntheticTouchEvent) -> Unit) {
-        registerEventListener(TouchEventListener(EventsListenerScope.TOUCHSTART, listener))
-    }
-
-    /* Animation Events */
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onAnimationEnd(listener: (SyntheticAnimationEvent) -> Unit) {
-        registerEventListener(AnimationEventListener(EventsListenerScope.ANIMATIONEND, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onAnimationIteration(listener: (SyntheticAnimationEvent) -> Unit) {
-        registerEventListener(AnimationEventListener(EventsListenerScope.ANIMATIONITERATION, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onAnimationStart(listener: (SyntheticAnimationEvent) -> Unit) {
-        registerEventListener(AnimationEventListener(EventsListenerScope.ANIMATIONSTART, listener))
-    }
-
-    @OptIn(ComposeWebInternalApi::class)
-    fun onScroll(listener: (SyntheticEvent<NativeEventTarget>) -> Unit) {
-        registerEventListener(GenericEventListener(EventsListenerScope.SCROLL, listener))
-    }
-
-    /**
-     * [addEventListener] used for adding arbitrary events to the element. It resembles the standard DOM addEventListener method
-     * @param eventName - the name of the event
-     * @param options - as of now this param is always equal to Options.DEFAULT
-     * @listener - event handler
-     */
-    // The generic <T : SyntheticEvent<out NativeEventTarget>> overload (needed by e.g.
-    // InputAttrsScope.onInvalid, which passes a listener typed to a specific element subtype)
-    // can't be a second AttrsScope member here: on JVM, a member fun and this generic member fun
-    // erase to the identical raw-SyntheticEvent signature within the same interface, which is a
-    // genuine "platform declaration clash" (unlike the case below) and @JvmName isn't allowed on
-    // open/interface members. So it's kept as a top-level extension function on
-    // EventsListenerScope instead (see EventsListenerScope.kt) -- it compiles into a different JVM
-    // class (the file's Kt class) than this interface member, so there's no clash, and its one
-    // call site (InputAttrsScope.kt) already has `import org.jetbrains.compose.web.attributes.*`.
-    @OptIn(ComposeWebInternalApi::class)
-    fun addEventListener(
-        eventName: String,
-        listener: (SyntheticEvent<NativeEventTarget>) -> Unit
-    ) {
-        registerEventListener(GenericEventListener(eventName, listener))
-    }
 
     /**
      * [ref] can be used to retrieve a reference to a html element.

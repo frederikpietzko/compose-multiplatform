@@ -3,7 +3,15 @@ package org.jetbrains.compose.web.attributes
 // if you change API for this interface, note that there is a link to this file in this tutorial: https://github.com/JetBrains/compose-multiplatform/blob/master/tutorials/HTML/Events_Handling/README.md#other-event-handlers
 
 import androidx.compose.web.events.NativeEventTarget
+import androidx.compose.web.events.SyntheticDragEvent
 import androidx.compose.web.events.SyntheticEvent
+import androidx.compose.web.events.SyntheticMouseEvent
+import androidx.compose.web.events.SyntheticWheelEvent
+import org.jetbrains.compose.web.events.SyntheticAnimationEvent
+import org.jetbrains.compose.web.events.SyntheticClipboardEvent
+import org.jetbrains.compose.web.events.SyntheticFocusEvent
+import org.jetbrains.compose.web.events.SyntheticKeyboardEvent
+import org.jetbrains.compose.web.events.SyntheticTouchEvent
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 import org.jetbrains.compose.web.internal.runtime.NamedEventListener
 
@@ -14,97 +22,304 @@ import org.jetbrains.compose.web.internal.runtime.NamedEventListener
 // (2.4), once those wrapper classes (and the native-event expect/actual seam they need) were
 // themselves moved to commonMain.
 //
-// Note on shape: the onXxx methods can't live as *default-bodied members* of this expect
-// interface -- Kotlin rejects that ("Expected declaration cannot have a body"), unlike expect
-// *class* members which may add extra actual-only members but may not carry a body themselves
-// either. They also can't be common top-level extension functions on EventsListenerScope: real
-// call sites (e.g. `Button({ onClick { ... } })`, see core/src/jsTest/kotlin/elements/EventTests.kt)
-// invoke onClick/onMouseDown/etc. via AttrsScope's implicit receiver with no explicit import of
-// this package, which only resolves if these are genuine interface members (as they always were
-// pre-task-2.4). So the onXxx methods (plus addEventListener) are declared as default-bodied
-// MEMBERS of AttrsScope instead (see AttrsScope.kt) -- the only real implementer of
-// EventsListenerScope in this codebase (confirmed via grep for EventsListenerScope(Builder)
-// usages) and itself a plain, non-expect interface where default bodies are fully legal. Only the
-// abstract `registerEventListener` and the (name-only) companion constants remain here; they need
-// real actual counterparts per platform, with the JS/JVM actual constants keeping the exact same
-// values as before (see EventsListenerScope.js.kt / EventsListenerScope.jvm.kt).
+// Follow-up fix (post-2.4 review): with the Synthetic*/Native* seam now fully in commonMain, none
+// of this interface's members reference any platform-specific type any more, so there's no reason
+// left for EventsListenerScope itself to be an expect/actual declaration -- only
+// `registerEventListener` is genuinely abstract (per-implementer), and everything else can be a
+// plain default-bodied member of an ordinary common interface, exactly like it was pre-task-2.4
+// (back when this whole interface lived only in jsMain). This also restores the public API of
+// EventsListenerScopeBuilder (and its deprecated alias EventsListenerBuilder), a public,
+// non-AttrsScope implementer of this interface which had temporarily lost the onXxx/addEventListener
+// surface when task 2.4 moved it onto AttrsScope instead (AttrsScope inherits it right back now,
+// so the duplicate copies that lived directly on AttrsScope were removed -- see AttrsScope.kt).
 
 /**
  * [EventsListenerScope] is used most often not directly but via [AttrsScope].
  * Its purpose is to add events to the element. For all most frequently used events there
  * exist dedicated method. In case you need to support event that doesn't have such method,
- * use `addEventListener` (declared on [AttrsScope]).
+ * use [addEventListener].
  */
-expect interface EventsListenerScope {
+interface EventsListenerScope {
     @ComposeWebInternalApi
     fun registerEventListener(listener: NamedEventListener)
 
+    /* Mouse Events */
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onContextMenu(listener: (SyntheticMouseEvent) -> Unit) {
+        registerEventListener(MouseEventListener(CONTEXTMENU, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onClick(listener: (SyntheticMouseEvent) -> Unit) {
+        registerEventListener(MouseEventListener(CLICK, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onDoubleClick(listener: (SyntheticMouseEvent) -> Unit) {
+        registerEventListener(MouseEventListener(DBLCLICK, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onMouseDown(listener: (SyntheticMouseEvent) -> Unit) {
+        registerEventListener(MouseEventListener(MOUSEDOWN, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onMouseUp(listener: (SyntheticMouseEvent) -> Unit) {
+        registerEventListener(MouseEventListener(MOUSEUP, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onMouseEnter(listener: (SyntheticMouseEvent) -> Unit) {
+        registerEventListener(MouseEventListener(MOUSEENTER, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onMouseLeave(listener: (SyntheticMouseEvent) -> Unit) {
+        registerEventListener(MouseEventListener(MOUSELEAVE, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onMouseMove(listener: (SyntheticMouseEvent) -> Unit) {
+        registerEventListener(MouseEventListener(MOUSEMOVE, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onMouseOut(listener: (SyntheticMouseEvent) -> Unit) {
+        registerEventListener(MouseEventListener(MOUSEOUT, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onMouseOver(listener: (SyntheticMouseEvent) -> Unit) {
+        registerEventListener(MouseEventListener(MOUSEOVER, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onWheel(listener: (SyntheticWheelEvent) -> Unit) {
+        registerEventListener(MouseWheelEventListener(WHEEL, listener))
+    }
+
+    /* Drag Events */
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onDrag(listener: (SyntheticDragEvent) -> Unit) {
+        registerEventListener(DragEventListener(DRAG, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onDrop(listener: (SyntheticDragEvent) -> Unit) {
+        registerEventListener(DragEventListener(DROP, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onDragStart(listener: (SyntheticDragEvent) -> Unit) {
+        registerEventListener(DragEventListener(DRAGSTART, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onDragEnd(listener: (SyntheticDragEvent) -> Unit) {
+        registerEventListener(DragEventListener(DRAGEND, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onDragOver(listener: (SyntheticDragEvent) -> Unit) {
+        registerEventListener(DragEventListener(DRAGOVER, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onDragEnter(listener: (SyntheticDragEvent) -> Unit) {
+        registerEventListener(DragEventListener(DRAGENTER, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onDragLeave(listener: (SyntheticDragEvent) -> Unit) {
+        registerEventListener(DragEventListener(DRAGLEAVE, listener))
+    }
+
+    /* Clipboard Events */
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onCopy(listener: (SyntheticClipboardEvent) -> Unit) {
+        registerEventListener(ClipboardEventListener(COPY, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onCut(listener: (SyntheticClipboardEvent) -> Unit) {
+        registerEventListener(ClipboardEventListener(CUT, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onPaste(listener: (SyntheticClipboardEvent) -> Unit) {
+        registerEventListener(ClipboardEventListener(PASTE, listener))
+    }
+
+    /* Keyboard Events */
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onKeyDown(listener: (SyntheticKeyboardEvent) -> Unit) {
+        registerEventListener(KeyboardEventListener(KEYDOWN, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onKeyUp(listener: (SyntheticKeyboardEvent) -> Unit) {
+        registerEventListener(KeyboardEventListener(KEYUP, listener))
+    }
+
+    /* Focus Events */
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onFocus(listener: (SyntheticFocusEvent) -> Unit) {
+        registerEventListener(FocusEventListener(FOCUS, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onBlur(listener: (SyntheticFocusEvent) -> Unit) {
+        registerEventListener(FocusEventListener(BLUR, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onFocusIn(listener: (SyntheticFocusEvent) -> Unit) {
+        registerEventListener(FocusEventListener(FOCUSIN, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onFocusOut(listener: (SyntheticFocusEvent) -> Unit) {
+        registerEventListener(FocusEventListener(FOCUSOUT, listener))
+    }
+
+    /* Touch Events */
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onTouchCancel(listener: (SyntheticTouchEvent) -> Unit) {
+        registerEventListener(TouchEventListener(TOUCHCANCEL, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onTouchMove(listener: (SyntheticTouchEvent) -> Unit) {
+        registerEventListener(TouchEventListener(TOUCHMOVE, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onTouchEnd(listener: (SyntheticTouchEvent) -> Unit) {
+        registerEventListener(TouchEventListener(TOUCHEND, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onTouchStart(listener: (SyntheticTouchEvent) -> Unit) {
+        registerEventListener(TouchEventListener(TOUCHSTART, listener))
+    }
+
+    /* Animation Events */
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onAnimationEnd(listener: (SyntheticAnimationEvent) -> Unit) {
+        registerEventListener(AnimationEventListener(ANIMATIONEND, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onAnimationIteration(listener: (SyntheticAnimationEvent) -> Unit) {
+        registerEventListener(AnimationEventListener(ANIMATIONITERATION, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onAnimationStart(listener: (SyntheticAnimationEvent) -> Unit) {
+        registerEventListener(AnimationEventListener(ANIMATIONSTART, listener))
+    }
+
+    @OptIn(ComposeWebInternalApi::class)
+    fun onScroll(listener: (SyntheticEvent<NativeEventTarget>) -> Unit) {
+        registerEventListener(GenericEventListener(SCROLL, listener))
+    }
+
+    /**
+     * [addEventListener] used for adding arbitrary events to the element. It resembles the standard DOM addEventListener method
+     * @param eventName - the name of the event
+     * @param options - as of now this param is always equal to Options.DEFAULT
+     * @listener - event handler
+     */
+    // The generic <T : SyntheticEvent<out NativeEventTarget>> overload below (needed by e.g.
+    // InputAttrsScope.onInvalid, which passes a listener typed to a specific element subtype)
+    // can't be a second member of this interface: on JVM, a member fun and this generic member fun
+    // erase to the identical raw-SyntheticEvent signature within the same interface, a genuine
+    // "platform declaration clash" that can't be resolved with @JvmName (not allowed on
+    // open/interface members). So the generic overload is kept as a top-level extension function
+    // instead (see below) -- it compiles into a different JVM class (the file's Kt class) than this
+    // interface member, so there's no clash.
+    @OptIn(ComposeWebInternalApi::class)
+    fun addEventListener(
+        eventName: String,
+        listener: (SyntheticEvent<NativeEventTarget>) -> Unit
+    ) {
+        registerEventListener(GenericEventListener(eventName, listener))
+    }
+
     companion object {
-        val COPY: String
-        val CUT: String
-        val PASTE: String
-        val CONTEXTMENU: String
+        val COPY: String = "copy"
+        val CUT: String = "cut"
+        val PASTE: String = "paste"
+        val CONTEXTMENU: String = "contextmenu"
 
-        val CLICK: String
-        val DBLCLICK: String
-        val FOCUS: String
-        val BLUR: String
-        val FOCUSIN: String
-        val FOCUSOUT: String
+        val CLICK: String = "click"
+        val DBLCLICK: String = "dblclick"
+        val FOCUS: String = "focus"
+        val BLUR: String = "blur"
+        val FOCUSIN: String = "focusin"
+        val FOCUSOUT: String = "focusout"
 
-        val KEYDOWN: String
-        val KEYUP: String
-        val MOUSEDOWN: String
-        val MOUSEUP: String
-        val MOUSEENTER: String
-        val MOUSELEAVE: String
-        val MOUSEMOVE: String
-        val MOUSEOUT: String
-        val MOUSEOVER: String
-        val WHEEL: String
-        val SCROLL: String
-        val SELECT: String
+        val KEYDOWN: String = "keydown"
+        val KEYUP: String = "keyup"
+        val MOUSEDOWN: String = "mousedown"
+        val MOUSEUP: String = "mouseup"
+        val MOUSEENTER: String = "mouseenter"
+        val MOUSELEAVE: String = "mouseleave"
+        val MOUSEMOVE: String = "mousemove"
+        val MOUSEOUT: String = "mouseout"
+        val MOUSEOVER: String = "mouseover"
+        val WHEEL: String = "wheel"
+        val SCROLL: String = "scroll"
+        val SELECT: String = "select"
 
-        val TOUCHCANCEL: String
-        val TOUCHEND: String
-        val TOUCHMOVE: String
-        val TOUCHSTART: String
+        val TOUCHCANCEL: String = "touchcancel"
+        val TOUCHEND: String = "touchend"
+        val TOUCHMOVE: String = "touchmove"
+        val TOUCHSTART: String = "touchstart"
 
-        val ANIMATIONCANCEL: String // firefox and safari only
-        val ANIMATIONEND: String
-        val ANIMATIONITERATION: String
-        val ANIMATIONSTART: String
+        val ANIMATIONCANCEL: String = "animationcancel" // firefox and safari only
+        val ANIMATIONEND: String = "animationend"
+        val ANIMATIONITERATION: String = "animationiteration"
+        val ANIMATIONSTART: String = "animationstart"
 
-        val BEFOREINPUT: String
-        val INPUT: String
-        val CHANGE: String
-        val INVALID: String
+        val BEFOREINPUT: String = "beforeinput"
+        val INPUT: String = "input"
+        val CHANGE: String = "change"
+        val INVALID: String = "invalid"
 
-        val DRAG: String
-        val DROP: String
-        val DRAGSTART: String
-        val DRAGEND: String
-        val DRAGOVER: String
-        val DRAGENTER: String
-        val DRAGLEAVE: String
+        val DRAG: String = "drag"
+        val DROP: String = "drop"
+        val DRAGSTART: String = "dragstart"
+        val DRAGEND: String = "dragend"
+        val DRAGOVER: String = "dragover"
+        val DRAGENTER: String = "dragenter"
+        val DRAGLEAVE: String = "dragleave"
 
-        val SUBMIT: String
-        val RESET: String
+        val SUBMIT: String = "submit"
+        val RESET: String = "reset"
     }
 }
 
 /**
  * [addEventListener] used for adding arbitrary events to the element, for cases where the listener
  * needs to be typed to a specific [SyntheticEvent] subtype (e.g. one tied to a specific element
- * type, as in `InputAttrsScope.onInvalid`). See [AttrsScope.addEventListener] for the simpler,
- * non-generic overload that lives directly on [AttrsScope] as a member.
+ * type, as in `InputAttrsScope.onInvalid`). See [EventsListenerScope.addEventListener] for the
+ * simpler, non-generic overload that lives directly on [EventsListenerScope] as a member.
  *
- * This one stays a top-level extension function (rather than a second AttrsScope member) because a
- * member fun and this generic member fun would erase to the identical raw-SyntheticEvent JVM
- * signature within the same interface -- a genuine "platform declaration clash" that can't be
+ * This one stays a top-level extension function (rather than a second EventsListenerScope member)
+ * because a member fun and this generic member fun would erase to the identical raw-SyntheticEvent
+ * JVM signature within the same interface -- a genuine "platform declaration clash" that can't be
  * resolved with `@JvmName` (not allowed on open/interface members). As a top-level extension
- * function it compiles into a different JVM class than the AttrsScope interface member, so no
- * clash occurs.
+ * function it compiles into a different JVM class than the EventsListenerScope interface member, so
+ * no clash occurs.
  */
 @OptIn(ComposeWebInternalApi::class)
 fun <T : SyntheticEvent<out NativeEventTarget>> EventsListenerScope.addEventListener(
