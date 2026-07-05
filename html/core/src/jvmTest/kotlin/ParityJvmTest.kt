@@ -1,3 +1,5 @@
+package org.jetbrains.compose.web.core.tests
+
 import org.jetbrains.compose.web.core.tests.parity.SampleTree
 import org.jetbrains.compose.web.renderToString
 import kotlin.test.Test
