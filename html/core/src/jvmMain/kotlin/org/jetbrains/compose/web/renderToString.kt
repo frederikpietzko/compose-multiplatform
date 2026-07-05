@@ -96,20 +96,28 @@ fun renderToString(content: @Composable DOMScope<DomElement>.() -> Unit): String
             get() = placeholderRootElement
     }
 
-    composition.setContent { domScope.content() }
+    val html = try {
+        composition.setContent { domScope.content() }
 
-    // Initial composition (above) is applied synchronously, so the tree is already complete at
-    // this point. Sending a frame additionally flushes any recomposition/effects that scheduled
-    // themselves for "the next frame" (e.g. via a LaunchedEffect) during that initial pass, so
-    // the serialized output reflects a fully-settled composition. BroadcastFrameClock.sendFrame
-    // is a no-op if nothing is awaiting a frame, so this is safe and non-blocking either way.
-    clock.sendFrame(0L)
+        // Initial composition (above) is applied synchronously, so the tree is already complete at
+        // this point. Sending a frame additionally flushes any recomposition/effects that scheduled
+        // themselves for "the next frame" (e.g. via a LaunchedEffect) during that initial pass, so
+        // the serialized output reflects a fully-settled composition. BroadcastFrameClock.sendFrame
+        // is a no-op if nothing is awaiting a frame, so this is safe and non-blocking either way.
+        clock.sendFrame(0L)
 
-    val html = serializeToHtml(root)
-
-    composition.dispose()
-    recomposer.cancel()
-    job.cancel()
+        serializeToHtml(root)
+    } finally {
+        // This must run even if setContent/sendFrame/serializeToHtml throws (e.g. the caller's
+        // composable throws during initial composition): otherwise the Recomposer never
+        // deregisters from the static, process-wide `Recomposer.runningRecomposers` set and leaks
+        // permanently for the life of the JVM process. See the "Why this doesn't call
+        // renderComposableRoot" note above. Each call is idempotent, so this is safe to run
+        // unconditionally.
+        composition.dispose()
+        recomposer.cancel()
+        job.cancel()
+    }
 
     return html
 }
