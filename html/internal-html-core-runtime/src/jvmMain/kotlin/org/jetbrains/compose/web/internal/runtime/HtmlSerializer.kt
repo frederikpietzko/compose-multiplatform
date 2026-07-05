@@ -9,16 +9,9 @@ package org.jetbrains.compose.web.internal.runtime
  * signature is an implementation detail that varies across kotlinx.html versions, whereas
  * this walk over the [NativeNode] tree is simple, fully under our control, and easy to keep
  * correct.
- *
- * @param prettyPrint reserved for future formatting support (indentation/newlines between
- * tags); currently the output is always compact.
- *
- * Note: this is not annotated with [ComposeWebInternalApi] (unlike other internal-runtime
- * APIs in this package) so that call sites — including tests — don't need an explicit
- * `@OptIn`. It lives in the `internal.runtime` package, which itself signals API stability
- * expectations.
  */
-fun serializeToHtml(root: NativeNode, prettyPrint: Boolean = false): String {
+@ComposeWebInternalApi
+fun serializeToHtml(root: NativeNode): String {
     val sb = StringBuilder()
     root.children.forEach { appendNode(it, sb) }
     return sb.toString()
@@ -34,11 +27,6 @@ private fun appendNode(node: NativeNode, sb: StringBuilder) {
 
 private fun appendElement(element: JvmElement, sb: StringBuilder) {
     val tagName = element.tagName
-    if (tagName.isEmpty()) {
-        // Transparent node: emit only children, no wrapper tag.
-        element.children.forEach { appendNode(it, sb) }
-        return
-    }
 
     sb.append('<').append(tagName)
 

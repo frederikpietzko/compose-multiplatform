@@ -2,6 +2,7 @@ import org.jetbrains.compose.web.internal.runtime.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+@OptIn(ComposeWebInternalApi::class)
 class HtmlSerializerTest {
     @Test
     fun serializesElementWithAttrsClassesStyleAndText() {
