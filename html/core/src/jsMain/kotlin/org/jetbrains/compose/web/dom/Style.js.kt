@@ -1,5 +1,7 @@
 package org.jetbrains.compose.web.dom
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import org.w3c.dom.css.CSSGroupingRule
 import org.w3c.dom.css.CSSRule
 import org.w3c.dom.css.CSSStyleDeclaration
@@ -7,6 +9,10 @@ import org.w3c.dom.css.CSSStyleRule
 import org.jetbrains.compose.web.css.*
 import org.w3c.dom.css.CSSStyleSheet
 
+// Moved from jsMain Style.kt (task 2.5): stringPresentation() was split out to commonMain
+// dom/Style.kt (pure string serialization, no browser API). Everything remaining here is
+// genuinely CSSOM-only and now also backs the JS actual of the StyleTagContent seam declared in
+// Elements.kt (the seam that lets Style() inject rules on JS vs. render them as text on JVM).
 
 internal fun CSSStyleSheet.setCSSRules(cssRules: CSSRuleDeclarationList) {
     cssRules.forEach { cssRule ->
@@ -76,10 +82,28 @@ private fun fillRule(
     }
 }
 
-fun CSSRuleDeclaration.stringPresentation(
-    baseIndent: String = "",
-    indent: String = "    ",
-    delimiter: String = "\n"
+internal fun setProperty(
+    style: CSSStyleDeclaration,
+    name: String,
+    value: StylePropertyValue,
+    important: Boolean
+) {
+    style.setProperty(name, value.toString(), if (important) "important" else "")
+}
+
+internal fun setVariable(
+    style: CSSStyleDeclaration,
+    name: String,
+    value: StylePropertyValue
+) {
+    style.setProperty("--$name", value.toString())
+}
+
+@OptIn(org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi::class)
+actual fun CSSRuleDeclaration.stringPresentation(
+    baseIndent: String,
+    indent: String,
+    delimiter: String
 ): String {
     val cssRuleDeclaration = this
     val strings = mutableListOf<String>()
@@ -108,19 +132,19 @@ fun CSSRuleDeclaration.stringPresentation(
     return strings.joinToString(delimiter)
 }
 
-internal fun setProperty(
-    style: CSSStyleDeclaration,
-    name: String,
-    value: StylePropertyValue,
-    important: Boolean
-) {
-    style.setProperty(name, value.toString(), if (important) "important" else "")
+@Composable
+internal actual fun ElementScope<HTMLStyleElement>.StyleTagContent(cssRules: CSSRuleDeclarationList) {
+    DisposableEffect(cssRules, cssRules.size) {
+        val cssStylesheet = scopeElement.sheet as? CSSStyleSheet
+        cssStylesheet?.setCSSRules(cssRules)
+        onDispose {
+            cssStylesheet?.clearCSSRules()
+        }
+    }
 }
 
-internal fun setVariable(
-    style: CSSStyleDeclaration,
-    name: String,
-    value: StylePropertyValue
-) {
-    style.setProperty("--$name", value.toString())
+private fun CSSStyleSheet.clearCSSRules() {
+    repeat(cssRules.length) {
+        deleteRule(0)
+    }
 }
