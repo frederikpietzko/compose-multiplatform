@@ -6,13 +6,11 @@
 package androidx.compose.web.attributes
 
 import org.jetbrains.compose.web.attributes.AttrsScope
-import org.jetbrains.compose.web.attributes.EventsListenerScope.Companion.CHANGE
-import org.jetbrains.compose.web.attributes.EventsListenerScope.Companion.INPUT
 import org.jetbrains.compose.web.attributes.SyntheticEventListener
+import org.jetbrains.compose.web.dom.HTMLSelectElement
 import org.jetbrains.compose.web.events.SyntheticChangeEvent
 import org.jetbrains.compose.web.events.SyntheticInputEvent
-import org.w3c.dom.HTMLSelectElement
-import org.w3c.dom.events.Event
+import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 
 @Deprecated(
     message = "Renamed to SelectAttrsScope",
@@ -22,12 +20,14 @@ typealias SelectAttrsBuilder = SelectAttrsScope
 
 class SelectAttrsScope(attrsScope: AttrsScope<HTMLSelectElement>) : AttrsScope<HTMLSelectElement> by attrsScope {
 
+    @OptIn(ComposeWebInternalApi::class)
     fun onInput(
         listener: (SyntheticInputEvent<String?, HTMLSelectElement>) -> Unit
     ) {
-        registerEventListener(SelectInputEventListener(INPUT, listener))
+        registerEventListener(SelectInputEventListener(listener))
     }
 
+    @OptIn(ComposeWebInternalApi::class)
     fun onChange(
         listener: (SyntheticChangeEvent<String?, HTMLSelectElement>) -> Unit
     ) {
@@ -35,25 +35,17 @@ class SelectAttrsScope(attrsScope: AttrsScope<HTMLSelectElement>) : AttrsScope<H
     }
 }
 
-private class SelectInputEventListener(
-    eventName: String = INPUT,
+// Moved from jsMain to commonMain (task 2.5), split into expect/actual for the same reason as
+// InputEventListener/ChangeEventListener/SelectEventListener in attributes/SyntheticEventListener.kt:
+// the JS actual needs to override handleEvent(event: Event), a JS-only-typed method. The
+// `eventName: String = INPUT` default constructor param that SelectInputEventListener had in
+// jsMain was never relied on (the only call site omits it), so it's dropped here; the JS/JVM actuals
+// each pass their fixed INPUT/CHANGE event name directly to the SyntheticEventListener super
+// constructor instead.
+internal expect class SelectInputEventListener(
     listener: (SyntheticInputEvent<String?, HTMLSelectElement>) -> Unit
-) : SyntheticEventListener<SyntheticInputEvent<String?, HTMLSelectElement>>(
-    eventName, listener
-) {
-    override fun handleEvent(event: Event) {
-        val value = event.target?.asDynamic().value?.toString()
-        listener(SyntheticInputEvent(value, event))
-    }
-}
+) : SyntheticEventListener<SyntheticInputEvent<String?, HTMLSelectElement>>
 
-private class SelectChangeEventListener(
+internal expect class SelectChangeEventListener(
     listener: (SyntheticChangeEvent<String?, HTMLSelectElement>) -> Unit
-): SyntheticEventListener<SyntheticChangeEvent<String?, HTMLSelectElement>>(
-    CHANGE, listener
-) {
-    override fun handleEvent(event: Event) {
-        val value = event.target?.asDynamic().value?.toString()
-        listener(SyntheticChangeEvent(value, event))
-    }
-}
+) : SyntheticEventListener<SyntheticChangeEvent<String?, HTMLSelectElement>>

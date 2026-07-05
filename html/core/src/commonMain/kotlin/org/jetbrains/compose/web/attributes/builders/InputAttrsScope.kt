@@ -13,7 +13,8 @@ import org.jetbrains.compose.web.attributes.EventsListenerScope.Companion.INVALI
 import org.jetbrains.compose.web.events.SyntheticChangeEvent
 import org.jetbrains.compose.web.events.SyntheticInputEvent
 import org.jetbrains.compose.web.events.SyntheticSelectEvent
-import org.w3c.dom.HTMLInputElement
+import org.jetbrains.compose.web.dom.HTMLInputElement
+import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 
 @Deprecated(
     message = "Renamed to InputAttrsScope<T>",
@@ -84,24 +85,28 @@ class InputAttrsScope<ValueType>(
         addEventListener(INVALID, listener)
     }
 
+    @OptIn(ComposeWebInternalApi::class)
     fun onInput(
         listener: (SyntheticInputEvent<ValueType, HTMLInputElement>) -> Unit
     ) {
         registerEventListener(InputEventListener(eventName = INPUT, inputType, listener))
     }
 
+    @OptIn(ComposeWebInternalApi::class)
     fun onChange(
         listener: (SyntheticChangeEvent<ValueType, HTMLInputElement>) -> Unit
     ) {
         registerEventListener(ChangeEventListener(inputType, listener))
     }
 
+    @OptIn(ComposeWebInternalApi::class)
     fun onBeforeInput(
         listener: (SyntheticInputEvent<ValueType, HTMLInputElement>) -> Unit
     ) {
         registerEventListener(InputEventListener(eventName = BEFOREINPUT, inputType, listener))
     }
 
+    @OptIn(ComposeWebInternalApi::class)
     fun onSelect(
         listener: (SyntheticSelectEvent<HTMLInputElement>) -> Unit
     ) {

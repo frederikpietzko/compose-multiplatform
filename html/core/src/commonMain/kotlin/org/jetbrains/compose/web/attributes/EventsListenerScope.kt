@@ -238,8 +238,8 @@ interface EventsListenerScope {
      * @param options - as of now this param is always equal to Options.DEFAULT
      * @listener - event handler
      */
-    // The generic <T : SyntheticEvent<out NativeEventTarget>> overload below (needed by e.g.
-    // InputAttrsScope.onInvalid, which passes a listener typed to a specific element subtype)
+    // The generic <T : SyntheticEvent<*>> overload below (needed by e.g. InputAttrsScope.onInvalid,
+    // which passes a listener typed to a specific element subtype)
     // can't be a second member of this interface: on JVM, a member fun and this generic member fun
     // erase to the identical raw-SyntheticEvent signature within the same interface, a genuine
     // "platform declaration clash" that can't be resolved with @JvmName (not allowed on
@@ -320,9 +320,14 @@ interface EventsListenerScope {
  * resolved with `@JvmName` (not allowed on open/interface members). As a top-level extension
  * function it compiles into a different JVM class than the EventsListenerScope interface member, so
  * no clash occurs.
+ *
+ * T's Element bound is unconstrained (not NativeEventTarget): call sites like
+ * `InputAttrsScope.onInvalid` parameterize SyntheticEvent on the commonMain HTMLInputElement
+ * DomHtmlElement subtype, a separate expect hierarchy from NativeEventTarget -- see
+ * SyntheticEvent.kt for the full rationale.
  */
 @OptIn(ComposeWebInternalApi::class)
-fun <T : SyntheticEvent<out NativeEventTarget>> EventsListenerScope.addEventListener(
+fun <T : SyntheticEvent<*>> EventsListenerScope.addEventListener(
     eventName: String,
     listener: (T) -> Unit
 ) {
