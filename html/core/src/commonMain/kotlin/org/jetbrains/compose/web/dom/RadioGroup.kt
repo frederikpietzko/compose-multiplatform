@@ -60,7 +60,8 @@ fun <E, T : Enum<E>?> RadioGroup(
         content = {
             // normal cast would fail here!
             // this is to specify the type of the values for radio inputs
-            content(radioGroupScopeImpl.unsafeCast<RadioGroupScope<T>>())
+            @Suppress("UNCHECKED_CAST")
+            content(radioGroupScopeImpl as RadioGroupScope<T>)
         }
     )
 }
@@ -87,7 +88,8 @@ fun RadioGroup(
         content = {
             // normal cast would fail here!
             // this is to specify the type of the values for radio inputs
-            content(radioGroupScopeImpl.unsafeCast<RadioGroupScope<String>>())
+            @Suppress("UNCHECKED_CAST")
+            content(radioGroupScopeImpl as RadioGroupScope<String>)
         }
     )
 }

@@ -10,63 +10,25 @@ import org.jetbrains.compose.web.css.StyleSheetBuilderImpl
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 import org.jetbrains.compose.web.internal.runtime.DomApplier
 import org.jetbrains.compose.web.internal.runtime.NativeNodeWrapper
-import org.w3c.dom.HTMLAnchorElement
-import org.w3c.dom.HTMLAreaElement
-import org.w3c.dom.HTMLAudioElement
-import org.w3c.dom.HTMLBRElement
-import org.w3c.dom.HTMLButtonElement
-import org.w3c.dom.HTMLCanvasElement
-import org.w3c.dom.HTMLDataListElement
-import org.w3c.dom.HTMLDListElement
-import org.w3c.dom.HTMLDivElement
-import org.w3c.dom.HTMLElement
-import org.w3c.dom.HTMLEmbedElement
-import org.w3c.dom.HTMLFieldSetElement
-import org.w3c.dom.HTMLFormElement
-import org.w3c.dom.HTMLHRElement
-import org.w3c.dom.HTMLHeadingElement
-import org.w3c.dom.HTMLIFrameElement
-import org.w3c.dom.HTMLImageElement
-import org.w3c.dom.HTMLInputElement
-import org.w3c.dom.HTMLLIElement
-import org.w3c.dom.HTMLLabelElement
-import org.w3c.dom.HTMLLegendElement
-import org.w3c.dom.HTMLMapElement
-import org.w3c.dom.HTMLMeterElement
-import org.w3c.dom.HTMLOListElement
-import org.w3c.dom.HTMLObjectElement
-import org.w3c.dom.HTMLOptGroupElement
-import org.w3c.dom.HTMLOptionElement
-import org.w3c.dom.HTMLOutputElement
-import org.w3c.dom.HTMLParagraphElement
-import org.w3c.dom.HTMLParamElement
-import org.w3c.dom.HTMLPictureElement
-import org.w3c.dom.HTMLPreElement
-import org.w3c.dom.HTMLProgressElement
-import org.w3c.dom.HTMLSelectElement
-import org.w3c.dom.HTMLSourceElement
-import org.w3c.dom.HTMLSpanElement
-import org.w3c.dom.HTMLStyleElement
-import org.w3c.dom.HTMLTableCaptionElement
-import org.w3c.dom.HTMLTableCellElement
-import org.w3c.dom.HTMLTableColElement
-import org.w3c.dom.HTMLTableElement
-import org.w3c.dom.HTMLTableRowElement
-import org.w3c.dom.HTMLTableSectionElement
-import org.w3c.dom.HTMLTextAreaElement
-import org.w3c.dom.HTMLTrackElement
-import org.w3c.dom.HTMLUListElement
-import org.w3c.dom.HTMLVideoElement
-import org.w3c.dom.Text
-import org.w3c.dom.css.CSSStyleSheet
+import org.jetbrains.compose.web.internal.runtime.setTextData
+
+// Moved from jsMain to commonMain (task 2.5): the ~46 org.w3c.dom.HTMLXxxElement imports above were
+// dropped -- their commonMain equivalents (HTMLAnchorElement, HTMLDivElement, ... down in
+// DomElementTypes.kt) live in this same org.jetbrains.compose.web.dom package, so no import is
+// needed. The plain (attribute-less) org.w3c.dom.HTMLElement uses (Address, Article, Aside, ...)
+// become DomHtmlElement, the common supertype of all HTMLXxxElement types. org.w3c.dom.Text and
+// org.w3c.dom.css.CSSStyleSheet are gone too -- see the Text() composable (now
+// createNativeText + DomText.setTextData) and the Style() composables (now delegate the
+// browser-only CSSOM injection vs. JVM/SSR text-child-collection choice to the expect/actual
+// StyleTagContent below).
 
 typealias AttrBuilderContext<T> = AttrsScope<T>.() -> Unit
 typealias ContentBuilder<T> = @Composable ElementScope<T>.() -> Unit
 
-private val Address: ElementBuilder<HTMLElement> = ElementBuilderImplementation("address")
-private val Article: ElementBuilder<HTMLElement> = ElementBuilderImplementation("article")
-private val Aside: ElementBuilder<HTMLElement> = ElementBuilderImplementation("aside")
-private val Header: ElementBuilder<HTMLElement> = ElementBuilderImplementation("header")
+private val Address: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("address")
+private val Article: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("article")
+private val Aside: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("aside")
+private val Header: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("header")
 
 private val Area: ElementBuilder<HTMLAreaElement> = ElementBuilderImplementation("area")
 private val Audio: ElementBuilder<HTMLAudioElement> = ElementBuilderImplementation("audio")
@@ -90,8 +52,8 @@ private val Source: ElementBuilder<HTMLSourceElement> = ElementBuilderImplementa
 private val Canvas: ElementBuilder<HTMLCanvasElement> = ElementBuilderImplementation("canvas")
 
 private val DList: ElementBuilder<HTMLDListElement> = ElementBuilderImplementation("dl")
-private val DTerm: ElementBuilder<HTMLElement> = ElementBuilderImplementation("dt")
-private val DDescription: ElementBuilder<HTMLElement> = ElementBuilderImplementation("dd")
+private val DTerm: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("dt")
+private val DDescription: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("dd")
 
 private val Div: ElementBuilder<HTMLDivElement> = ElementBuilderImplementation("div")
 private val A: ElementBuilder<HTMLAnchorElement> = ElementBuilderImplementation("a")
@@ -107,13 +69,13 @@ private val H6: ElementBuilder<HTMLHeadingElement> = ElementBuilderImplementatio
 
 private val P: ElementBuilder<HTMLParagraphElement> = ElementBuilderImplementation<HTMLParagraphElement>("p")
 
-private val Em: ElementBuilder<HTMLElement> = ElementBuilderImplementation("em")
-private val I: ElementBuilder<HTMLElement> = ElementBuilderImplementation("i")
-private val B: ElementBuilder<HTMLElement> = ElementBuilderImplementation("b")
-private val Small: ElementBuilder<HTMLElement> = ElementBuilderImplementation("small")
-private val Sup: ElementBuilder<HTMLElement> = ElementBuilderImplementation("sup")
-private val Sub: ElementBuilder<HTMLElement> = ElementBuilderImplementation("sub")
-private val Blockquote: ElementBuilder<HTMLElement> = ElementBuilderImplementation("blockquote")
+private val Em: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("em")
+private val I: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("i")
+private val B: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("b")
+private val Small: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("small")
+private val Sup: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("sup")
+private val Sub: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("sub")
+private val Blockquote: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("blockquote")
 
 private val Span: ElementBuilder<HTMLSpanElement> = ElementBuilderImplementation("span")
 
@@ -131,14 +93,14 @@ private val Select: ElementBuilder<HTMLSelectElement> = ElementBuilderImplementa
 private val Option: ElementBuilder<HTMLOptionElement> = ElementBuilderImplementation("option")
 private val OptGroup: ElementBuilder<HTMLOptGroupElement> = ElementBuilderImplementation("optgroup")
 
-private val Section: ElementBuilder<HTMLElement> = ElementBuilderImplementation("section")
+private val Section: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("section")
 private val TextArea: ElementBuilder<HTMLTextAreaElement> = ElementBuilderImplementation("textarea")
-private val Nav: ElementBuilder<HTMLElement> = ElementBuilderImplementation("nav")
+private val Nav: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("nav")
 private val Pre: ElementBuilder<HTMLPreElement> = ElementBuilderImplementation("pre")
-private val Code: ElementBuilder<HTMLElement> = ElementBuilderImplementation("code")
+private val Code: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("code")
 
-private val Main: ElementBuilder<HTMLElement> = ElementBuilderImplementation("main")
-private val Footer: ElementBuilder<HTMLElement> = ElementBuilderImplementation("footer")
+private val Main: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("main")
+private val Footer: ElementBuilder<DomHtmlElement> = ElementBuilderImplementation("footer")
 private val Hr: ElementBuilder<HTMLHRElement> = ElementBuilderImplementation("hr")
 private val Label: ElementBuilder<HTMLLabelElement> = ElementBuilderImplementation("label")
 private val Table: ElementBuilder<HTMLTableElement> = ElementBuilderImplementation("table")
@@ -156,8 +118,8 @@ internal val Style: ElementBuilder<HTMLStyleElement> = ElementBuilderImplementat
 
 @Composable
 fun Address(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) {
     TagElement(
         elementBuilder = Address,
@@ -168,8 +130,8 @@ fun Address(
 
 @Composable
 fun Article(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) {
     TagElement(
         elementBuilder = Article,
@@ -180,8 +142,8 @@ fun Article(
 
 @Composable
 fun Aside(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) {
     TagElement(
         elementBuilder = Aside,
@@ -192,8 +154,8 @@ fun Aside(
 
 @Composable
 fun Header(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) {
     TagElement(
         elementBuilder = Header,
@@ -432,8 +394,8 @@ fun DList(
 
 @Composable
 fun DDescription(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) {
     TagElement(
         elementBuilder = DDescription,
@@ -444,8 +406,8 @@ fun DDescription(
 
 @Composable
 fun DTerm(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) {
     TagElement(
         elementBuilder = DTerm,
@@ -460,7 +422,7 @@ fun Text(value: String) {
     ComposeNode<NativeNodeWrapper, DomApplier>(
         factory = { NativeNodeWrapper(createNativeText("")) },
         update = {
-            set(value) { value -> (node as Text).data = value }
+            set(value) { value -> (node as DomText).setTextData(value) }
         },
     )
 }
@@ -547,44 +509,44 @@ fun P(
 
 @Composable
 fun Em(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) = TagElement(elementBuilder = Em, applyAttrs = attrs, content = content)
 
 @Composable
 fun I(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) = TagElement(elementBuilder = I, applyAttrs = attrs, content = content)
 
 @Composable
 fun B(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) = TagElement(elementBuilder = B, applyAttrs = attrs, content = content)
 
 @Composable
 fun Small(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) = TagElement(elementBuilder = Small, applyAttrs = attrs, content = content)
 
 @Composable
 fun Sup(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) = TagElement(elementBuilder = Sup, applyAttrs = attrs, content = content)
 
 @Composable
 fun Sub(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) = TagElement(elementBuilder = Sub, applyAttrs = attrs, content = content)
 
 @Composable
 fun Blockquote(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) = TagElement(elementBuilder = Blockquote, applyAttrs = attrs, content = content)
 
 @Composable
@@ -697,8 +659,8 @@ fun OptGroup(
 
 @Composable
 fun Section(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) = TagElement(
     elementBuilder = Section,
     applyAttrs = attrs,
@@ -760,8 +722,8 @@ fun TextArea(
 
 @Composable
 fun Nav(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) = TagElement(
     elementBuilder = Nav,
     applyAttrs = attrs,
@@ -782,8 +744,8 @@ fun Pre(
 
 @Composable
 fun Code(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) {
     TagElement(
         elementBuilder = Code,
@@ -794,8 +756,8 @@ fun Code(
 
 @Composable
 fun Main(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) {
     TagElement(
         elementBuilder = Main,
@@ -806,8 +768,8 @@ fun Main(
 
 @Composable
 fun Footer(
-    attrs: AttrBuilderContext<HTMLElement>? = null,
-    content: ContentBuilder<HTMLElement>? = null
+    attrs: AttrBuilderContext<DomHtmlElement>? = null,
+    content: ContentBuilder<DomHtmlElement>? = null
 ) {
     TagElement(
         elementBuilder = Footer,
@@ -985,15 +947,16 @@ fun Style(
             }
         },
     ) {
-        DisposableEffect(cssRules, cssRules.size) {
-            val cssStylesheet = scopeElement.sheet as? CSSStyleSheet
-            cssStylesheet?.setCSSRules(cssRules)
-            onDispose {
-                cssStylesheet?.clearCSSRules()
-            }
-        }
+        StyleTagContent(cssRules)
     }
 }
+
+// Style() needs to mount cssRules into the <style> element it creates. On JS this means injecting
+// them live into the browser's CSSOM (the element's native `sheet`); JVM has no CSSOM, so its
+// actual instead renders the serialized CSS text as a child text node -- see Style.js.kt /
+// Style.jvm.kt (task 2.5).
+@Composable
+internal expect fun ElementScope<HTMLStyleElement>.StyleTagContent(cssRules: CSSRuleDeclarationList)
 
 /**
  * Use this function to mount the <style> tag into the DOM tree.
@@ -1008,12 +971,6 @@ inline fun Style(
     val builder = StyleSheetBuilderImpl()
     builder.rulesBuild()
     Style(applyAttrs, builder.cssRules)
-}
-
-private fun CSSStyleSheet.clearCSSRules() {
-    repeat(cssRules.length) {
-        deleteRule(0)
-    }
 }
 
 /**
