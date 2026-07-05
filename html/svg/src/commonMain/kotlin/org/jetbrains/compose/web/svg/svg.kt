@@ -6,20 +6,20 @@
 package org.jetbrains.compose.web.svg
 
 import androidx.compose.runtime.Composable
-import kotlinx.browser.document
 import org.jetbrains.compose.web.ExperimentalComposeWebSvgApi
-import org.jetbrains.compose.web.css.CSSLengthOrPercentageValue
 import org.jetbrains.compose.web.dom.*
 import org.jetbrains.compose.web.internal.runtime.NativeNode
-import org.w3c.css.masking.SVGClipPathElement
-import org.w3c.css.masking.SVGMaskElement
-import org.w3c.dom.Element
-import org.w3c.dom.svg.*
 
-private open class ElementBuilderNS<TElement : Element>(private val tagName: String, private val namespace: String) :
+// ElementBuilderNS used to cache a single lazily-created browser Element per builder and
+// `cloneNode()` it on every `create()` call (avoiding repeated `createElementNS` overhead). That
+// caching was JS-only and browser-specific; on JVM there is no such overhead to amortize (creating
+// a JvmElement is a trivial allocation), and html-core's own non-namespaced ElementBuilderImplementation
+// (ElementBuilder.kt) already forgoes this optimization, calling createNativeElement(tagName) fresh
+// every time. Mirroring that, ElementBuilderNS now calls createNativeElementNS fresh on every
+// create() too -- same DOM structure produced on JS, just without the clone-from-cache trick.
+internal class ElementBuilderNS<TElement : DomElement>(private val tagName: String, private val namespace: String) :
     ElementBuilder<TElement> {
-    private val el: Element by lazy { document.createElementNS(namespace, tagName) }
-    override fun create(): NativeNode = el.cloneNode()
+    override fun create(): NativeNode = createNativeElementNS(namespace, tagName)
 }
 
 const val SVG_NS = "http://www.w3.org/2000/svg"
@@ -28,15 +28,20 @@ private val A = ElementBuilderNS<SVGAElement>("a", SVG_NS)
 private val Animate = ElementBuilderNS<SVGElement>("animate", SVG_NS)
 private val AnimateMotion = ElementBuilderNS<SVGElement>("animateMotion", SVG_NS)
 private val AnimateTransform = ElementBuilderNS<SVGElement>("animateTransform", SVG_NS)
-private val Circle = ElementBuilderNS<SVGCircleElement>("circle", SVG_NS)
+// internal (not private): the CSSLengthOrPercentageValue-typed Circle/Rect/Ellipse/Line overloads
+// stayed jsMain-only (SvgCssLengthOverloads.js.kt, see that file's header comment) and need to
+// reference the same builder singletons from a different file/source-set; `internal` is visible
+// across source sets within one module's compilation (commonMain is compiled as part of jsMain),
+// same visibility html-core's own ElementBuilder.buildersCache relies on.
+internal val Circle = ElementBuilderNS<SVGCircleElement>("circle", SVG_NS)
 private val ClipPath = ElementBuilderNS<SVGClipPathElement>("clipPath", SVG_NS)
 private val Defs = ElementBuilderNS<SVGDefsElement>("defs", SVG_NS)
 private val Desc = ElementBuilderNS<SVGDescElement>("desc", SVG_NS)
-private val Ellipse = ElementBuilderNS<SVGEllipseElement>("ellipse", SVG_NS)
+internal val Ellipse = ElementBuilderNS<SVGEllipseElement>("ellipse", SVG_NS)
 private val Filter = ElementBuilderNS<SVGElement>("filter", SVG_NS)
 private val G = ElementBuilderNS<SVGElement>("g", SVG_NS)
 private val Image = ElementBuilderNS<SVGImageElement>("image", SVG_NS)
-private val Line = ElementBuilderNS<SVGLineElement>("line", SVG_NS)
+internal val Line = ElementBuilderNS<SVGLineElement>("line", SVG_NS)
 private val LinearGradient = ElementBuilderNS<SVGLinearGradientElement>("linearGradient", SVG_NS)
 private val Marker = ElementBuilderNS<SVGMarkerElement>("marker", SVG_NS)
 private val Mask = ElementBuilderNS<SVGMaskElement>("mask", SVG_NS)
@@ -46,7 +51,7 @@ private val Pattern = ElementBuilderNS<SVGPatternElement>("pattern", SVG_NS)
 private val Polygon = ElementBuilderNS<SVGPolygonElement>("polygon", SVG_NS)
 private val Polyline = ElementBuilderNS<SVGPolylineElement>("polyline", SVG_NS)
 private val RadialGradient = ElementBuilderNS<SVGRadialGradientElement>("radialGradient", SVG_NS)
-private val Rect = ElementBuilderNS<SVGRectElement>("rect", SVG_NS)
+internal val Rect = ElementBuilderNS<SVGRectElement>("rect", SVG_NS)
 private val Set = ElementBuilderNS<SVGElement>("set", SVG_NS)
 private val Stop = ElementBuilderNS<SVGStopElement>("stop", SVG_NS)
 private val Svg = ElementBuilderNS<SVGElement>("svg", SVG_NS)
@@ -92,28 +97,6 @@ fun ElementScope<SVGElement>.SvgA(
         content = content
     )
 }
-
-@Composable
-@ExperimentalComposeWebSvgApi
-fun ElementScope<SVGElement>.Circle(
-  cx: CSSLengthOrPercentageValue,
-  cy: CSSLengthOrPercentageValue,
-  r: CSSLengthOrPercentageValue,
-  attrs: AttrBuilderContext<SVGCircleElement>? = null,
-  content: ContentBuilder<SVGCircleElement>? = null
-) {
-    TagElement(
-        elementBuilder = Circle,
-        applyAttrs = {
-            cx(cx)
-            cy(cy)
-            r(r)
-            attrs?.invoke(this)
-        },
-        content = content
-    )
-}
-
 
 @Composable
 @ExperimentalComposeWebSvgApi
@@ -202,29 +185,6 @@ fun ElementScope<SVGElement>.Rect(
 @Composable
 @ExperimentalComposeWebSvgApi
 fun ElementScope<SVGElement>.Rect(
-  x: CSSLengthOrPercentageValue,
-  y: CSSLengthOrPercentageValue,
-  width: CSSLengthOrPercentageValue,
-  height: CSSLengthOrPercentageValue,
-  attrs: AttrBuilderContext<SVGRectElement>? = null,
-  content: ContentBuilder<SVGRectElement>? = null
-) {
-    TagElement(
-        elementBuilder = Rect,
-        applyAttrs = {
-            x(x)
-            y(y)
-            width(width)
-            height(height)
-            attrs?.invoke(this)
-        },
-        content = content
-    )
-}
-
-@Composable
-@ExperimentalComposeWebSvgApi
-fun ElementScope<SVGElement>.Rect(
     width: Number,
     height: Number,
     rx: Number,
@@ -241,29 +201,6 @@ fun ElementScope<SVGElement>.Rect(
             rx(rx)
             ry(ry)
             transform(transform)
-            attrs?.invoke(this)
-        },
-        content = content
-    )
-}
-
-@Composable
-@ExperimentalComposeWebSvgApi
-fun ElementScope<SVGElement>.Ellipse(
-  cx: CSSLengthOrPercentageValue,
-  cy: CSSLengthOrPercentageValue,
-  rx: CSSLengthOrPercentageValue,
-  ry: CSSLengthOrPercentageValue,
-  attrs: AttrBuilderContext<SVGEllipseElement>? = null,
-  content: ContentBuilder<SVGEllipseElement>? = null
-) {
-    TagElement(
-        elementBuilder = Ellipse,
-        applyAttrs = {
-            cx(cx)
-            cy(cy)
-            rx(rx)
-            ry(ry)
             attrs?.invoke(this)
         },
         content = content
@@ -322,29 +259,6 @@ fun ElementScope<SVGElement>.Use(
         elementBuilder = Use,
         applyAttrs = {
             href(href)
-            attrs?.invoke(this)
-        },
-        content = content
-    )
-}
-
-@Composable
-@ExperimentalComposeWebSvgApi
-fun ElementScope<SVGElement>.Line(
-  x1: CSSLengthOrPercentageValue,
-  y1: CSSLengthOrPercentageValue,
-  x2: CSSLengthOrPercentageValue,
-  y2: CSSLengthOrPercentageValue,
-  attrs: AttrBuilderContext<SVGLineElement>? = null,
-  content: ContentBuilder<SVGLineElement>? = null
-) {
-    TagElement(
-        elementBuilder = Line,
-        applyAttrs = {
-            x1(x1)
-            y1(y1)
-            x2(x2)
-            y2(y2)
             attrs?.invoke(this)
         },
         content = content

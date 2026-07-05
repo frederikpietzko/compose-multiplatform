@@ -6,8 +6,15 @@
 package org.jetbrains.compose.web.svg
 
 import org.jetbrains.compose.web.attributes.*
-import org.jetbrains.compose.web.css.*
-import org.w3c.dom.svg.*
+
+// The CSSLengthOrPercentageValue/CSSPercentageValue-typed overloads of width/height/fillOpacity/
+// cx/cy/r/rx/ry/x/y/x1/y1/x2/y2 that used to live in this file stayed jsMain-only (see
+// SvgAttrsCssLengthOverloads.js.kt): the CSS unit/enum primitive cluster (org.jetbrains.compose.web.css
+// CSSUnits.kt et al, e.g. `5.px`, `CSSLengthOrPercentageValue`) is itself deliberately jsMain-only
+// per task 2.3/2.5's binding precedent (see html-core's css/StylePropertyValue.kt and
+// task-2.5-report.md) -- it uses Kotlin/JS-only `external interface` + `unsafeCast` and has no
+// commonMain/JVM port yet. The Number- and String-typed overloads below have no such dependency
+// and are fully portable.
 
 fun AttrsScope<SVGElement>.width(px: Number) {
     attr("width", px.toString())
@@ -15,14 +22,6 @@ fun AttrsScope<SVGElement>.width(px: Number) {
 
 fun AttrsScope<SVGElement>.height(px: Number) {
     attr("height", px.toString())
-}
-
-fun AttrsScope<SVGElement>.width(value: CSSLengthOrPercentageValue) {
-    attr("width", value.toString())
-}
-
-fun AttrsScope<SVGElement>.height(value: CSSLengthOrPercentageValue) {
-    attr("height", value.toString())
 }
 
 fun AttrsScope<SVGElement>.xmlns(nameSpace: String) {
@@ -42,10 +41,6 @@ fun AttrsScope<SVGElement>.fillRule(fill: String) {
 }
 
 fun AttrsScope<SVGElement>.fillOpacity(fill: Number) {
-    attr("fill-opacity", fill.toString())
-}
-
-fun AttrsScope<SVGElement>.fillOpacity(fill: CSSPercentageValue) {
     attr("fill-opacity", fill.toString())
 }
 
@@ -114,50 +109,6 @@ fun AttrsScope<SVGElement>.x2(x2: Number) {
 }
 
 fun AttrsScope<SVGElement>.y2(y2: Number) {
-    attr("y2", y2.toString())
-}
-
-fun AttrsScope<SVGElement>.cx(cx: CSSLengthOrPercentageValue) {
-    attr("cx", cx.toString())
-}
-
-fun AttrsScope<SVGElement>.cy(cy: CSSLengthOrPercentageValue) {
-    attr("cy", cy.toString())
-}
-
-fun AttrsScope<SVGElement>.r(r: CSSLengthOrPercentageValue) {
-    attr("r", r.toString())
-}
-
-fun AttrsScope<SVGElement>.rx(rx: CSSLengthOrPercentageValue) {
-    attr("rx", rx.toString())
-}
-
-fun AttrsScope<SVGElement>.ry(ry: CSSLengthOrPercentageValue) {
-    attr("ry", ry.toString())
-}
-
-fun AttrsScope<SVGElement>.x(x: CSSLengthOrPercentageValue) {
-    attr("x", x.toString())
-}
-
-fun AttrsScope<SVGElement>.y(y: CSSLengthOrPercentageValue) {
-    attr("y", y.toString())
-}
-
-fun AttrsScope<SVGElement>.x1(x1: CSSLengthOrPercentageValue) {
-    attr("x1", x1.toString())
-}
-
-fun AttrsScope<SVGElement>.y1(y1: CSSLengthOrPercentageValue) {
-    attr("y1", y1.toString())
-}
-
-fun AttrsScope<SVGElement>.x2(x2: CSSLengthOrPercentageValue) {
-    attr("x2", x2.toString())
-}
-
-fun AttrsScope<SVGElement>.y2(y2: CSSLengthOrPercentageValue) {
     attr("y2", y2.toString())
 }
 
