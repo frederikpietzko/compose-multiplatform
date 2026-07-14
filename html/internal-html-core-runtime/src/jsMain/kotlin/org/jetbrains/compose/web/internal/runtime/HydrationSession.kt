@@ -89,6 +89,7 @@ internal class HydrationSession(root: Node) {
     }
 
     fun abort() {
+        if (aborted) return
         aborted = true
         listeners.forEach { (target, value) ->
             value.forEach { target.removeEventListener(it.name, it) }

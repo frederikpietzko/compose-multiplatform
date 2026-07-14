@@ -89,6 +89,7 @@ actual fun NativeNode.applyEventListeners(listeners: List<NamedEventListener>) {
     listeners.forEach {
         addEventListener(it.name, it)
     }
+    recordHydrationEventListeners(this, listeners)
 }
 
 actual fun DomText.setTextData(value: String) {

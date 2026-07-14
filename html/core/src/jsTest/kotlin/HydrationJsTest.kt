@@ -13,13 +13,21 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.promise
 import org.jetbrains.compose.web.HydrationMismatchException
 import org.jetbrains.compose.web.hydrateComposable
+import org.jetbrains.compose.web.core.tests.hydration.HydrationCounter
+import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
+import org.jetbrains.compose.web.dom.DomElement
+import org.jetbrains.compose.web.dom.DomText
 import org.jetbrains.compose.web.dom.Span
+import org.jetbrains.compose.web.dom.TagElement
 import org.jetbrains.compose.web.dom.Text
+import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.MutationObserver
 import org.w3c.dom.MutationObserverInit
+import org.w3c.dom.events.MouseEvent
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
@@ -119,6 +127,95 @@ class HydrationJsTest {
         assertEquals(html, root.innerHTML)
         delay(1)
         assertEquals(recomposersBefore, Recomposer.runningRecomposers.value.size)
+    }
+
+    @Test
+    fun hydratesEventThenUsesNormalRecomposition() = MainScope().promise {
+        val root = document.createElement("div")
+        root.innerHTML = "<div class=\"idle\" style=\"color:red;\"><button>Count: 0</button></div>"
+        val div = root.firstChild as HTMLElement
+        val button = div.firstChild as HTMLElement
+        val text = button.firstChild as DomText
+
+        val composition = hydrateComposable(root) { HydrationCounter() }
+        try {
+            button.dispatchEvent(MouseEvent("click"))
+            delay(100)
+
+            assertSame(div, root.firstChild)
+            assertSame(button, div.firstChild)
+            assertSame(text, button.firstChild)
+            assertEquals("Count: 1", text.data)
+            assertEquals("active", div.className)
+            assertEquals("green", div.style.color)
+            assertEquals("<span class=\"result\">Updated</span>", (div.lastChild as Element).outerHTML)
+
+            button.dispatchEvent(MouseEvent("click"))
+            delay(100)
+
+            assertSame(text, button.firstChild)
+            assertEquals("Count: 2", text.data)
+            assertEquals(1, div.childNodes.length)
+        } finally {
+            composition.dispose()
+        }
+    }
+
+    @Test
+    fun removesListenersWhenLaterMismatchAborts() {
+        val root = document.createElement("div")
+        root.innerHTML = "<button>Count: 0</button><span>Server</span>"
+        var clicks = 0
+        val button = root.firstChild as HTMLElement
+
+        assertFailsWith<HydrationMismatchException> {
+            hydrateComposable(root) {
+                Button({ onClick { clicks++ } }) { Text("Count: 0") }
+                Span { Text("Client") }
+            }
+        }
+
+        button.dispatchEvent(MouseEvent("click"))
+        assertEquals(0, clicks)
+        assertSame(button, root.firstChild)
+    }
+
+    @Test
+    fun reportsMissingAndExtraChildren() {
+        val missing = document.createElement("div")
+        assertContains(
+            assertFailsWith<HydrationMismatchException> {
+                hydrateComposable(missing) { Span {} }
+            }.message.orEmpty(),
+            "found no node"
+        )
+
+        val extra = document.createElement("div")
+        extra.innerHTML = "<span></span><p></p>"
+        assertContains(
+            assertFailsWith<HydrationMismatchException> {
+                hydrateComposable(extra) { Span {} }
+            }.message.orEmpty(),
+            "found extra <p>"
+        )
+    }
+
+    @Test
+    fun rejectsSvgNamespaceAndClearsSessionAfterFailure() {
+        val svgRoot = document.createElement("div")
+        svgRoot.innerHTML = "<svg></svg>"
+        assertFailsWith<HydrationMismatchException> {
+            hydrateComposable(svgRoot) { TagElement<DomElement>("svg", null, null) }
+        }
+
+        val validRoot = document.createElement("div")
+        validRoot.innerHTML = "<span>ok</span>"
+        val composition = hydrateComposable(validRoot) { Span { Text("ok") } }
+        try {
+            assertEquals("<span>ok</span>", validRoot.innerHTML)
+        } finally {
+            composition.dispose()
+        }
     }
 }
 
