@@ -126,16 +126,17 @@ internal interface DomApplierStrategy {
         child: NativeNode
     )
 
+    fun clear(root: NativeNode)
     fun finish()
 }
 ```
 
 Two implementations exist:
 
-- `DefaultDomApplierStrategy` preserves current behavior. Traversal callbacks are no-ops and `reconcileChild` calls the existing indexed child insertion operation.
-- `HydrationDomApplierStrategy` forwards traversal to `HydrationSession`. During initial hydration, `reconcileChild` verifies that a claimed child already occupies the expected position and does not reinsert it. After successful initial hydration it delegates child reconciliation to default behavior, so later recompositions work normally.
+- `DefaultDomApplierStrategy` preserves current behavior. Traversal callbacks are no-ops, `reconcileChild` calls the existing indexed child insertion operation, and `clear` clears the root.
+- `HydrationDomApplierStrategy` forwards traversal to `HydrationSession`. During initial hydration, `reconcileChild` verifies that a claimed child already occupies the expected position and does not reinsert it. After successful initial hydration it delegates child reconciliation to default behavior, so later recompositions work normally. `clear` suppresses root clearing only while aborting a failed initial hydration; after success it delegates normally.
 
-`DomApplier.down` and `DomApplier.up` invoke `enter` and `leave`. `insertBottomUp` invokes `reconcileChild`. Initial composition completion invokes `finish` before the active session closes.
+`DomApplier.down` and `DomApplier.up` invoke `enter` and `leave`. `insertBottomUp` invokes `reconcileChild`, and `onClear` invokes `clear`. Initial composition completion invokes `finish` before the active session closes.
 
 Remove and move behavior remains unchanged. Initial composition is expected only to claim existing nodes; later recompositions use ordinary remove and move operations.
 
