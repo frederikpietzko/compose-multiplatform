@@ -257,7 +257,7 @@ Run:
 
 ```bash
 cd html
-./gradlew :internal-html-core-runtime:jvmTest :core:jvmTest
+./gradlew :internal-html-core-runtime:jvmTest :html-core:jvmTest
 ```
 
 Expected: PASS. Existing render and JVM SSR behavior unchanged.
@@ -693,7 +693,7 @@ Run:
 
 ```bash
 cd html
-./gradlew :core:jsBrowserTest
+./gradlew :html-core:jsBrowserTest
 ```
 
 Expected: FAIL because `hydrateComposable` does not exist and factories still create new nodes.
@@ -779,8 +779,8 @@ Run:
 
 ```bash
 cd html
-./gradlew :core:jsBrowserTest \
-  :core:jvmTest \
+./gradlew :html-core:jsBrowserTest \
+  :html-core:jvmTest \
   :internal-html-core-runtime:jsBrowserTest \
   :internal-html-core-runtime:jvmTest
 ```
@@ -931,7 +931,7 @@ Run:
 
 ```bash
 cd html
-./gradlew :core:jvmTest :core:jsBrowserTest
+./gradlew :html-core:jvmTest :html-core:jsBrowserTest
 ```
 
 Expected: JVM fixture PASS; interactive hydration may PASS; listener rollback test FAIL because `ElementUpdater.js.kt` has not recorded installed listeners.
@@ -1010,7 +1010,7 @@ Run:
 
 ```bash
 cd html
-./gradlew :internal-html-core-runtime:allTests :core:allTests
+./gradlew :internal-html-core-runtime:allTests :html-core:allTests
 ```
 
 Expected: PASS. Browser tests prove identity reuse, one increment per click, text/class/style updates, post-hydration insertion and removal, mismatch diagnostics, preserved root, listener cleanup, and reusable session state.
@@ -1078,8 +1078,8 @@ Run:
 ```bash
 cd html
 ./gradlew :internal-html-core-runtime:allTests \
-  :core:allTests \
-  :svg:allTests
+  :html-core:allTests \
+  :html-svg:allTests
 ```
 
 Expected: PASS.
