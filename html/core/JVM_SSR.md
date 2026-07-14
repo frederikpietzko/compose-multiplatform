@@ -76,9 +76,25 @@ even if `content` throws.
    "5px") }` escape hatch (and the selector DSL described above) instead. See the design spec's
    "Out of scope" section for the follow-up.
 
-5. **Hydration is out of scope.** `renderToString` produces static markup only. Making that
-   markup interactive in the browser (attaching event listeners, resuming state, etc.) is a
-   separate, future effort — it is not part of this JVM SSR support.
+5. **Hydration is available as an experimental PoC on JS.** Render the same composable with
+   identical initial inputs on JVM and JS, then hydrate its existing browser DOM:
+
+   ```kotlin
+   // JVM
+   val markup = renderToString { Counter() }
+
+   // JS, after markup is present under #root
+   val composition = hydrateComposable("root") { Counter() }
+   ```
+
+   The PoC reuses existing HTML element and text nodes, attaches event listeners, and continues
+   normal recomposition. Matching is marker-free and positional. It fails fast when tags, text,
+   or child counts differ.
+
+   Current PoC limits: no state serialization, async initial tree changes, parser-normalized
+   structures such as implicit `<tbody>`, SVG, raw-text elements, comments, externally modified
+   DOM, nested hydration, or mismatch fallback. Inputs must produce the same synchronous initial
+   tree on server and client.
 
 ## Migration note for existing JS consumers
 
