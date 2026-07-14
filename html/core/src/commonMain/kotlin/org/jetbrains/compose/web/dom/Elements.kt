@@ -420,7 +420,7 @@ fun DTerm(
 @Composable
 fun Text(value: String) {
     ComposeNode<NativeNodeWrapper, DomApplier>(
-        factory = { NativeNodeWrapper(createNativeText("")) },
+        factory = { NativeNodeWrapper(createNativeText(value)) },
         update = {
             set(value) { value -> (node as DomText).setTextData(value) }
         },

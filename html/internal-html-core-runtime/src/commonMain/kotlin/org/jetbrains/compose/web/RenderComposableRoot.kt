@@ -44,6 +44,10 @@ import org.jetbrains.compose.web.internal.runtime.NativeNodeWrapper
  * @param strategy - the [DomApplierStrategy] that handles tree traversal and child reconciliation
  * @param onCompositionCreated - callback invoked with the created [Composition], allowing callers to
  * register cleanup before content is set
+ * @param onInitialCompositionApplied - callback invoked after initial content is applied but before
+ * the composition is returned
+ * @param onCompositionFailed - callback invoked before partial composition cleanup when initial
+ * composition or [onInitialCompositionApplied] fails
  * @param content - the Composable lambda that defines the composition content
  *
  * @return the instance of the [Composition]
@@ -55,6 +59,8 @@ fun <TElement : NativeNode> renderComposableRoot(
     dispatcher: CoroutineDispatcher,
     strategy: DomApplierStrategy = DefaultDomApplierStrategy,
     onCompositionCreated: (Composition) -> Unit = {},
+    onInitialCompositionApplied: () -> Unit = {},
+    onCompositionFailed: () -> Unit = {},
     content: @Composable DOMScope<TElement>.() -> Unit
 ): Composition {
     val context = monotonicFrameClock + dispatcher
@@ -64,17 +70,33 @@ fun <TElement : NativeNode> renderComposableRoot(
         recomposer.runRecomposeAndApplyChanges()
     }
 
-    val composition = ControlledComposition(
-        applier = DomApplier(NativeNodeWrapper(root), strategy),
-        parent = recomposer
-    )
-    onCompositionCreated(composition)
-    val scope = object : DOMScope<TElement> {
-        override val DisposableEffectScope.scopeElement: TElement
-            get() = root
+    var partialComposition: ControlledComposition? = null
+    return try {
+        val composition = ControlledComposition(
+            applier = DomApplier(NativeNodeWrapper(root), strategy),
+            parent = recomposer
+        )
+        partialComposition = composition
+        onCompositionCreated(composition)
+        val scope = object : DOMScope<TElement> {
+            override val DisposableEffectScope.scopeElement: TElement
+                get() = root
+        }
+        composition.setContent @Composable {
+            content(scope)
+        }
+        onInitialCompositionApplied()
+        composition
+    } catch (failure: Throwable) {
+        try {
+            onCompositionFailed()
+        } finally {
+            try {
+                partialComposition?.dispose()
+            } finally {
+                recomposer.cancel()
+            }
+        }
+        throw failure
     }
-    composition.setContent @Composable {
-        content(scope)
-    }
-    return composition
 }

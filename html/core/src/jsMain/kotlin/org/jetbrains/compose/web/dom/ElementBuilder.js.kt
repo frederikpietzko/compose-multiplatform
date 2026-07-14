@@ -7,7 +7,11 @@ package org.jetbrains.compose.web.dom
 
 import kotlinx.browser.document
 import org.jetbrains.compose.web.internal.runtime.NativeNode
+import org.jetbrains.compose.web.internal.runtime.claimHydrationElement
+import org.jetbrains.compose.web.internal.runtime.claimHydrationText
 
-actual fun createNativeElement(tagName: String): NativeNode = document.createElement(tagName)
+actual fun createNativeElement(tagName: String): NativeNode =
+    claimHydrationElement(tagName) ?: document.createElement(tagName)
 
-actual fun createNativeText(text: String): NativeNode = document.createTextNode(text)
+actual fun createNativeText(text: String): NativeNode =
+    claimHydrationText(text) ?: document.createTextNode(text)

@@ -13,7 +13,10 @@ import kotlinx.browser.document
 import org.jetbrains.compose.web.dom.DOMScope
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
 import org.jetbrains.compose.web.internal.runtime.GlobalSnapshotManager
+import org.jetbrains.compose.web.internal.runtime.HydrationDomApplierStrategy
+import org.jetbrains.compose.web.internal.runtime.HydrationSession
 import org.jetbrains.compose.web.internal.runtime.JsMicrotasksDispatcher
+import org.jetbrains.compose.web.internal.runtime.withHydrationSession
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLBodyElement
 import org.w3c.dom.get
@@ -56,6 +59,59 @@ fun renderComposable(
     rootElementId: String,
     content: @Composable DOMScope<Element>.() -> Unit
 ): Composition = renderComposable(
+    root = document.getElementById(rootElementId)!!,
+    content = content
+)
+
+/**
+ * Hydrates server-rendered DOM under [root] without replacing matched nodes.
+ *
+ * Server and client content must deterministically produce identical element and text structure.
+ * Matching is positional and marker-free. DOM shapes changed by HTML parser normalization are not
+ * supported by this proof-of-concept and produce [HydrationMismatchException]. Caller owns returned
+ * [Composition] and must dispose it when no longer needed.
+ *
+ * @param root the server-rendered [Element] whose children are hydrated
+ * @param monotonicFrameClock the clock driving recomposition frame timing
+ * @param content Composable content matching server-rendered DOM exactly
+ * @return live [Composition] owned by caller
+ * @throws HydrationMismatchException when existing DOM does not match [content]
+ */
+@OptIn(ComposeWebInternalApi::class)
+fun <TElement : Element> hydrateComposable(
+    root: TElement,
+    monotonicFrameClock: MonotonicFrameClock = DefaultMonotonicFrameClock,
+    content: @Composable DOMScope<TElement>.() -> Unit
+): Composition {
+    GlobalSnapshotManager.ensureStarted()
+    val session = HydrationSession(root)
+    val strategy = HydrationDomApplierStrategy(session)
+
+    return withHydrationSession(session) {
+        renderComposableRoot(
+            root = root,
+            monotonicFrameClock = monotonicFrameClock,
+            dispatcher = JsMicrotasksDispatcher(),
+            strategy = strategy,
+            onInitialCompositionApplied = strategy::finish,
+            onCompositionFailed = session::abort,
+            content = content
+        )
+    }
+}
+
+/**
+ * Hydrates server-rendered DOM under element identified by [rootElementId].
+ *
+ * Matching is deterministic, positional, and marker-free; see [hydrateComposable] for constraints.
+ * Caller owns returned [Composition] and must dispose it when no longer needed.
+ *
+ * @throws HydrationMismatchException when existing DOM does not match [content]
+ */
+fun hydrateComposable(
+    rootElementId: String,
+    content: @Composable DOMScope<Element>.() -> Unit
+): Composition = hydrateComposable(
     root = document.getElementById(rootElementId)!!,
     content = content
 )
