@@ -99,6 +99,27 @@ class HydrationJsTest {
         delay(1)
         assertEquals(recomposersBefore, Recomposer.runningRecomposers.value.size)
     }
+
+    @OptIn(ExperimentalComposeApi::class)
+    @Test
+    fun finishFailurePreservesRootAndDoesNotLeakRecomposer() = MainScope().promise {
+        val root = document.createElement("div")
+        root.innerHTML = "<span>Server</span><em>Extra</em>"
+        val span = root.firstChild
+        val extra = root.lastChild
+        val html = root.innerHTML
+        val recomposersBefore = Recomposer.runningRecomposers.value.size
+
+        assertFailsWith<HydrationMismatchException> {
+            hydrateComposable(root) { Span { Text("Server") } }
+        }
+
+        assertSame(span, root.firstChild)
+        assertSame(extra, root.lastChild)
+        assertEquals(html, root.innerHTML)
+        delay(1)
+        assertEquals(recomposersBefore, Recomposer.runningRecomposers.value.size)
+    }
 }
 
 private object ChildListMutationOptions : MutationObserverInit {
