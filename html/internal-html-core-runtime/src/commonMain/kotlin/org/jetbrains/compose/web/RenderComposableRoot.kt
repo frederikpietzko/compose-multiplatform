@@ -17,7 +17,9 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.dom.DOMScope
 import org.jetbrains.compose.web.internal.runtime.ComposeWebInternalApi
+import org.jetbrains.compose.web.internal.runtime.DefaultDomApplierStrategy
 import org.jetbrains.compose.web.internal.runtime.DomApplier
+import org.jetbrains.compose.web.internal.runtime.DomApplierStrategy
 import org.jetbrains.compose.web.internal.runtime.NativeNode
 import org.jetbrains.compose.web.internal.runtime.NativeNodeWrapper
 
@@ -39,6 +41,9 @@ import org.jetbrains.compose.web.internal.runtime.NativeNodeWrapper
  * @param root - the root [NativeNode] of the platform-specific tree managed by Compose
  * @param monotonicFrameClock - the [MonotonicFrameClock] driving recomposition frame timing
  * @param dispatcher - the [CoroutineDispatcher] the [Recomposer]'s recompose-and-apply loop runs on
+ * @param strategy - the [DomApplierStrategy] that handles tree traversal and child reconciliation
+ * @param onCompositionCreated - callback invoked with the created [Composition], allowing callers to
+ * register cleanup before content is set
  * @param content - the Composable lambda that defines the composition content
  *
  * @return the instance of the [Composition]
@@ -48,6 +53,8 @@ fun <TElement : NativeNode> renderComposableRoot(
     root: TElement,
     monotonicFrameClock: MonotonicFrameClock,
     dispatcher: CoroutineDispatcher,
+    strategy: DomApplierStrategy = DefaultDomApplierStrategy,
+    onCompositionCreated: (Composition) -> Unit = {},
     content: @Composable DOMScope<TElement>.() -> Unit
 ): Composition {
     val context = monotonicFrameClock + dispatcher
@@ -58,9 +65,10 @@ fun <TElement : NativeNode> renderComposableRoot(
     }
 
     val composition = ControlledComposition(
-        applier = DomApplier(NativeNodeWrapper(root)),
+        applier = DomApplier(NativeNodeWrapper(root), strategy),
         parent = recomposer
     )
+    onCompositionCreated(composition)
     val scope = object : DOMScope<TElement> {
         override val DisposableEffectScope.scopeElement: TElement
             get() = root

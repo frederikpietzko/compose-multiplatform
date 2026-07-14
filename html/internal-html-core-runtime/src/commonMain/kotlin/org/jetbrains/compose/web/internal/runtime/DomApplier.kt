@@ -9,15 +9,24 @@ import androidx.compose.runtime.AbstractApplier
 
 @ComposeWebInternalApi
 class DomApplier(
-    root: NativeNodeWrapper
+    root: NativeNodeWrapper,
+    private val strategy: DomApplierStrategy = DefaultDomApplierStrategy
 ) : AbstractApplier<NativeNodeWrapper>(root) {
 
-    override fun insertTopDown(index: Int, instance: NativeNodeWrapper) {
-        // ignored. Building tree bottom-up
+    override fun down(node: NativeNodeWrapper) {
+        strategy.enter(node.node)
+        super.down(node)
     }
 
+    override fun up() {
+        strategy.leave(current.node)
+        super.up()
+    }
+
+    override fun insertTopDown(index: Int, instance: NativeNodeWrapper) = Unit
+
     override fun insertBottomUp(index: Int, instance: NativeNodeWrapper) {
-        current.insert(index, instance)
+        strategy.reconcileChild(current.node, index, instance.node)
     }
 
     override fun remove(index: Int, count: Int) {
@@ -29,6 +38,6 @@ class DomApplier(
     }
 
     override fun onClear() {
-        root.node.clearChildren()
+        strategy.clear(root.node)
     }
 }
