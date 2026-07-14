@@ -94,7 +94,8 @@ even if `content` throws.
    Current PoC limits: no state serialization, async initial tree changes, parser-normalized
    structures such as implicit `<tbody>`, SVG, raw-text elements, comments, externally modified
    DOM, nested hydration, or mismatch fallback. Inputs must produce the same synchronous initial
-   tree on server and client.
+   tree on server and client. See [HYDRATION.md](HYDRATION.md) for usage, matching rules, failure
+   behavior, testing, and the complete limitation list.
 
 ## Migration note for existing JS consumers
 
