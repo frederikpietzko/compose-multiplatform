@@ -5,6 +5,7 @@
 
 package org.jetbrains.compose.web.core.tests
 
+import androidx.compose.runtime.Composition
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.Recomposer
 import kotlinx.browser.document
@@ -13,6 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.promise
 import org.jetbrains.compose.web.HydrationMismatchException
 import org.jetbrains.compose.web.hydrateComposable
+import org.jetbrains.compose.web.renderComposable
 import org.jetbrains.compose.web.core.tests.hydration.HydrationCounter
 import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
@@ -106,6 +108,11 @@ class HydrationJsTest {
         assertEquals("<span>Server</span>", root.innerHTML)
         delay(1)
         assertEquals(recomposersBefore, Recomposer.runningRecomposers.value.size)
+
+        val normalRoot = document.createElement("div")
+        val normalComposition = renderComposable(normalRoot) { Div { Text("Normal") } }
+        assertEquals("<div>Normal</div>", normalRoot.innerHTML)
+        normalComposition.dispose()
     }
 
     @OptIn(ExperimentalComposeApi::class)
@@ -127,6 +134,103 @@ class HydrationJsTest {
         assertEquals(html, root.innerHTML)
         delay(1)
         assertEquals(recomposersBefore, Recomposer.runningRecomposers.value.size)
+    }
+
+    @Test
+    fun finishFailureDeactivatesHydrationBeforeRefDisposal() {
+        val root = document.createElement("div")
+        root.innerHTML = "<span>Server</span><em>Extra</em>"
+        val span = root.firstChild
+        val extra = root.lastChild
+        val html = root.innerHTML
+        val normalRoot = document.createElement("div")
+        var normalComposition: Composition? = null
+
+        val failure = assertFailsWith<HydrationMismatchException> {
+            hydrateComposable(root) {
+                Span(attrs = {
+                    ref {
+                        onDispose {
+                            normalComposition = renderComposable(normalRoot) {
+                                Div { Text("Normal") }
+                            }
+                        }
+                    }
+                }) { Text("Server") }
+            }
+        }
+
+        assertEquals(
+            "Hydration mismatch at root: expected end of node, found extra <em>",
+            failure.message
+        )
+        assertSame(span, root.firstChild)
+        assertSame(extra, root.lastChild)
+        assertEquals(html, root.innerHTML)
+        assertEquals("<div>Normal</div>", normalRoot.innerHTML)
+        normalComposition!!.dispose()
+    }
+
+    @OptIn(ExperimentalComposeApi::class)
+    @Test
+    fun throwingRefDisposalDoesNotReplaceFinishFailureOrLeakRecomposer() = MainScope().promise {
+        val root = document.createElement("div")
+        root.innerHTML = "<span>Server</span><em>Extra</em>"
+        val span = root.firstChild
+        val extra = root.lastChild
+        val html = root.innerHTML
+        val cleanupFailure = IllegalStateException("cleanup failed")
+        val recomposersBefore = Recomposer.runningRecomposers.value.size
+
+        val failure = assertFailsWith<HydrationMismatchException> {
+            hydrateComposable(root) {
+                Span(attrs = {
+                    ref {
+                        onDispose { throw cleanupFailure }
+                    }
+                }) { Text("Server") }
+            }
+        }
+
+        assertEquals(
+            "Hydration mismatch at root: expected end of node, found extra <em>",
+            failure.message
+        )
+        assertSame(cleanupFailure, failure.suppressedExceptions.single())
+        assertSame(span, root.firstChild)
+        assertSame(extra, root.lastChild)
+        assertEquals(html, root.innerHTML)
+        delay(1)
+        assertEquals(recomposersBefore, Recomposer.runningRecomposers.value.size)
+    }
+
+    @OptIn(ExperimentalComposeApi::class)
+    @Test
+    fun userComposableFailurePreservesRootAndAllowsNormalRendering() = MainScope().promise {
+        val root = document.createElement("div")
+        root.innerHTML = "<span>Server</span>"
+        val span = root.firstChild
+        val html = root.innerHTML
+        val contentFailure = IllegalStateException("content failed")
+        val recomposersBefore = Recomposer.runningRecomposers.value.size
+
+        val failure = assertFailsWith<IllegalStateException> {
+            hydrateComposable(root) {
+                Span { Text("Server") }
+                throw contentFailure
+            }
+        }
+
+        assertSame(contentFailure, failure)
+        assertSame(span, root.firstChild)
+        assertEquals(html, root.innerHTML)
+        delay(1)
+        assertEquals(recomposersBefore, Recomposer.runningRecomposers.value.size)
+
+        val normalRoot = document.createElement("div")
+        val normalComposition = renderComposable(normalRoot) { Div { Text("Normal") } }
+        assertEquals("<div>Normal</div>", normalRoot.innerHTML)
+        normalComposition.dispose()
     }
 
     @Test
@@ -153,6 +257,7 @@ class HydrationJsTest {
             button.dispatchEvent(MouseEvent("click"))
             delay(100)
 
+            assertSame(button, div.firstChild)
             assertSame(text, button.firstChild)
             assertEquals("Count: 2", text.data)
             assertEquals(1, div.childNodes.length)

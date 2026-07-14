@@ -16,6 +16,7 @@ import org.jetbrains.compose.web.internal.runtime.GlobalSnapshotManager
 import org.jetbrains.compose.web.internal.runtime.HydrationDomApplierStrategy
 import org.jetbrains.compose.web.internal.runtime.HydrationSession
 import org.jetbrains.compose.web.internal.runtime.JsMicrotasksDispatcher
+import org.jetbrains.compose.web.internal.runtime.deactivateHydrationSession
 import org.jetbrains.compose.web.internal.runtime.withHydrationSession
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLBodyElement
@@ -94,7 +95,13 @@ fun <TElement : Element> hydrateComposable(
             dispatcher = JsMicrotasksDispatcher(),
             strategy = strategy,
             onInitialCompositionApplied = strategy::finish,
-            onCompositionFailed = session::abort,
+            onCompositionFailed = {
+                try {
+                    session.abort()
+                } finally {
+                    deactivateHydrationSession(session)
+                }
+            },
             content = content
         )
     }

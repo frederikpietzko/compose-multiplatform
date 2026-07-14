@@ -131,6 +131,12 @@ internal fun <T> withHydrationSession(session: HydrationSession, block: () -> T)
     return try {
         block()
     } finally {
+        deactivateHydrationSession(session)
+    }
+}
+
+internal fun deactivateHydrationSession(session: HydrationSession) {
+    if (activeHydrationSession === session) {
         activeHydrationSession = null
     }
 }

@@ -88,15 +88,26 @@ fun <TElement : NativeNode> renderComposableRoot(
         onInitialCompositionApplied()
         composition
     } catch (failure: Throwable) {
-        try {
-            onCompositionFailed()
-        } finally {
+        runCleanupPreserving(failure) { onCompositionFailed() }
+        runCleanupPreserving(failure) { partialComposition?.dispose() }
+        runCleanupPreserving(failure) { recomposer.cancel() }
+        throw failure
+    }
+}
+
+private inline fun runCleanupPreserving(
+    originalFailure: Throwable,
+    cleanup: () -> Unit
+) {
+    try {
+        cleanup()
+    } catch (cleanupFailure: Throwable) {
+        if (cleanupFailure !== originalFailure) {
             try {
-                partialComposition?.dispose()
-            } finally {
-                recomposer.cancel()
+                originalFailure.addSuppressed(cleanupFailure)
+            } catch (_: Throwable) {
+                // Suppression is best-effort; cleanup must never replace the original failure.
             }
         }
-        throw failure
     }
 }
