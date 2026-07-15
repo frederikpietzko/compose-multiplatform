@@ -34,6 +34,26 @@ frame", e.g. `LaunchedEffect`) settle, serializes the resulting tree to an HTML 
 the composition down again — so each call is self-contained and does not leak a `Recomposer`,
 even if `content` throws.
 
+### Rendering explicitly registered hydration state
+
+Use `renderToStringWithState` when selected mutable state must initialize browser hydration:
+
+```kotlin
+val result: SsrResult = renderToStringWithState {
+    Counter(initialCount = 7)
+}
+
+val markup: String = result.html
+val rawStateJson: String = result.stateJson
+```
+
+Register values inside the composable with `rememberHydratableState(key)`. The renderer captures
+HTML and current state after the same settling frame and before composition teardown. The returned
+JSON is raw transport data; application or framework code decides how to deliver it safely.
+
+Calling ordinary `renderToString` installs no state registry. In that path,
+`rememberHydratableState` behaves like ordinary remembered mutable state and nothing is exported.
+
 ## What works on JVM
 
 - All the built-in element composables (`Div`, `Span`, `P`, `Table`/`Tr`/`Td`, `Ul`/`Li`,
@@ -91,11 +111,13 @@ even if `content` throws.
    normal recomposition. Matching is marker-free and positional. It fails fast when tags, text,
    or child counts differ.
 
-   Current PoC limits: no state serialization, async initial tree changes, parser-normalized
+   Explicitly registered state can cross the SSR boundary through
+   [`renderToStringWithState`](#rendering-explicitly-registered-hydration-state). Parser-normalized
    structures such as implicit `<tbody>`, SVG, raw-text elements, comments, externally modified
-   DOM, nested hydration, or mismatch fallback. Inputs must produce the same synchronous initial
-   tree on server and client. See [HYDRATION.md](HYDRATION.md) for usage, matching rules, failure
-   behavior, testing, and the complete limitation list.
+   DOM, nested hydration, async initial tree changes, and mismatch fallback remain unsupported.
+   Without explicitly registered state, inputs must produce the same synchronous initial tree on
+   server and client. See [HYDRATION.md](HYDRATION.md) for usage, matching rules, failure behavior,
+   testing, and the complete limitation list.
 
 ## Migration note for existing JS consumers
 

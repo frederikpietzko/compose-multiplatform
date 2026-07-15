@@ -70,13 +70,60 @@ needed:
 composition.dispose()
 ```
 
+## Explicit hydration state
+
+State created with `remember` still initializes independently on JVM and JS. For values that must
+cross the SSR boundary, register mutable state with a stable page-global key:
+
+```kotlin
+import org.jetbrains.compose.web.state.rememberHydratableState
+
+@Composable
+fun Counter(initialCount: Int) {
+    var count by rememberHydratableState("counter") { initialCount }
+    Button({ onClick { count++ } }) {
+        Text("Count: $count")
+    }
+}
+```
+
+The JVM state-aware renderer returns markup and raw JSON:
+
+```kotlin
+val result = renderToStringWithState {
+    Counter(initialCount = 7)
+}
+```
+
+Application or framework code transports `result.stateJson` to the browser. Pass the received
+string directly to the state-aware overload:
+
+```kotlin
+val composition = hydrateComposable(root, receivedStateJson) {
+    Counter(initialCount = 0)
+}
+```
+
+The browser initializer is skipped because `counter` restores to `7` before positional DOM
+matching. Server and browser initial compositions must register exactly the same keys: blank or
+active duplicate keys, missing payload keys, and unconsumed payload keys fail hydration. Payload
+discovery, HTML embedding, escaping, CSP handling, and HTTP transport are outside Compose HTML's
+state API.
+
 ## API
 
-The JS target provides two overloads in `org.jetbrains.compose.web`:
+The JS target provides three overloads in `org.jetbrains.compose.web`:
 
 ```kotlin
 fun <TElement : Element> hydrateComposable(
     root: TElement,
+    monotonicFrameClock: MonotonicFrameClock = DefaultMonotonicFrameClock,
+    content: @Composable DOMScope<TElement>.() -> Unit
+): Composition
+
+fun <TElement : Element> hydrateComposable(
+    root: TElement,
+    stateJson: String,
     monotonicFrameClock: MonotonicFrameClock = DefaultMonotonicFrameClock,
     content: @Composable DOMScope<TElement>.() -> Unit
 ): Composition
@@ -87,9 +134,10 @@ fun hydrateComposable(
 ): Composition
 ```
 
-The element overload is useful when the caller already has a DOM reference or needs to provide a
-custom frame clock. The ID overload follows `renderComposable(rootElementId, ...)`: a missing ID
-fails rather than creating a root. There is no body-specific hydration overload in the PoC.
+The element overloads are useful when the caller already has a DOM reference or needs to provide a
+custom frame clock. The state-aware overload accepts raw JSON from `renderToStringWithState`. The
+ID overload follows `renderComposable(rootElementId, ...)`: a missing ID fails rather than creating
+a root. There is no body-specific hydration overload in the PoC.
 
 ## Required server/client flow
 
@@ -103,9 +151,10 @@ Hydration requires this sequence:
 6. After matching succeeds, later recompositions use normal DOM insert, remove, move, and update
    behavior.
 
-No Compose state is transferred from JVM to JS. `remember` initializes independently in the
-browser. Application data needed to reproduce the initial tree must therefore be supplied to both
-targets by the application.
+In this state-unaware flow, no Compose state is transferred from JVM to JS. `remember` initializes
+independently in the browser. Application data needed to reproduce the initial tree must therefore
+be supplied to both targets by the application. The state-aware APIs described above can instead
+transfer values registered explicitly with `rememberHydratableState`.
 
 ## What works
 
@@ -187,10 +236,14 @@ and reload or show a fatal error.
 ## Current limitations
 
 1. **Identical synchronous initial trees are required.** Server and browser must use the same
-   composable and initial inputs.
+   composable and produce the same initial tree. Explicitly restored state may let their fallback
+   inputs differ; other inputs that affect the tree must still match.
 
-2. **No state or data serialization.** Compose slot-table state, `remember` values, and page inputs
-   are not transported automatically.
+2. **Only explicitly registered state is serialized.** Values created through
+   `rememberHydratableState` can cross the SSR boundary when using `renderToStringWithState` and
+   the state-aware `hydrateComposable` overload. Ordinary `remember`, slot-table state, page
+   inputs, effects, coroutine state, and event handlers are not serialized. Keys must be nonblank,
+   page-global, and identical across the server and browser initial compositions.
 
 3. **No async initial tree changes.** `LaunchedEffect`, `produceState`, or other asynchronous work
    must not change the SSR tree before hydration finishes. Such changes can make JVM output differ
