@@ -14,6 +14,7 @@ import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
+import org.jetbrains.compose.web.state.rememberHydratableState
 
 @Composable
 fun HydrationCounter() {
@@ -28,5 +29,19 @@ fun HydrationCounter() {
         if (count % 2 == 1) {
             Span({ classes("result") }) { Text("Updated") }
         }
+    }
+}
+
+@Composable
+fun HydratableCounter(
+    initialCount: Int,
+    onInitialize: () -> Unit = {}
+) {
+    var count by rememberHydratableState("counter") {
+        onInitialize()
+        initialCount
+    }
+    Button(attrs = { onClick { count++ } }) {
+        Text("Count: $count")
     }
 }
