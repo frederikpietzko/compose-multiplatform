@@ -134,6 +134,31 @@ class HydrationStateRegistryTest {
     }
 
     @Test
+    fun customSerializerTransformsSnapshotAndRestoresValue() {
+        val saving = HydrationStateRegistry.saving()
+        val savingEntry = saving.createEntry("custom", TransformedIntSerializer) { 7 }
+        savingEntry.onRemembered()
+
+        val snapshot = saving.snapshotValues()
+        assertEquals(
+            mapOf("custom" to JsonPrimitive("encoded:7")),
+            snapshot
+        )
+
+        val restoring = HydrationStateRegistry.restoring(snapshot)
+        var initializerCalled = false
+        val restoredEntry = restoring.createEntry("custom", TransformedIntSerializer) {
+            initializerCalled = true
+            0
+        }
+        restoredEntry.onRemembered()
+
+        assertEquals(7, restoredEntry.state.value)
+        assertFalse(initializerCalled)
+        restoring.verifyRestorationComplete()
+    }
+
+    @Test
     fun wrapsSerializerFailuresWithKeyAndOperation() {
         val saving = HydrationStateRegistry.saving()
         val savingEntry = saving.createEntry("broken", ThrowingIntSerializer) { 1 }
@@ -155,6 +180,18 @@ class HydrationStateRegistryTest {
             "Failed to restore hydration state \"broken\""
         )
     }
+}
+
+private object TransformedIntSerializer : KSerializer<Int> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("TransformedInt", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: Int) {
+        encoder.encodeString("encoded:$value")
+    }
+
+    override fun deserialize(decoder: Decoder): Int =
+        decoder.decodeString().removePrefix("encoded:").toInt()
 }
 
 private object ThrowingIntSerializer : KSerializer<Int> {

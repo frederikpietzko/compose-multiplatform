@@ -143,6 +143,7 @@ private fun renderContent(
             get() = placeholderRootElement
     }
 
+    var bodyFailure: Throwable? = null
     return try {
         composition.setContent {
             if (registry == null) {
@@ -169,15 +170,44 @@ private fun renderContent(
                 HydrationStatePayloadCodec.encode(it.snapshotValues())
             }
         )
+    } catch (failure: Throwable) {
+        bodyFailure = failure
+        throw failure
     } finally {
         // This must run even if setContent/sendFrame/serializeToHtml/state encoding throws (e.g.
         // the caller's composable throws during initial composition): otherwise the Recomposer
         // never deregisters from the static, process-wide `Recomposer.runningRecomposers` set and
         // leaks permanently for the life of the JVM process. See the "Why this doesn't call
         // renderComposableRoot" note above. Each call is idempotent, so this is safe to run
-        // unconditionally.
-        composition.dispose()
-        recomposer.cancel()
-        job.cancel()
+        // unconditionally. Cleanup failures must not prevent later cleanup or replace a body
+        // failure.
+        var failure = bodyFailure
+        failure = runCleanupPreserving(failure) { composition.dispose() }
+        failure = runCleanupPreserving(failure) { recomposer.cancel() }
+        failure = runCleanupPreserving(failure) { job.cancel() }
+        if (bodyFailure == null && failure != null) {
+            throw failure
+        }
+    }
+}
+
+private inline fun runCleanupPreserving(
+    originalFailure: Throwable?,
+    cleanup: () -> Unit
+): Throwable? = try {
+    cleanup()
+    originalFailure
+} catch (cleanupFailure: Throwable) {
+    if (originalFailure == null) {
+        cleanupFailure
+    } else {
+        if (cleanupFailure !== originalFailure) {
+            try {
+                originalFailure.addSuppressed(cleanupFailure)
+            } catch (_: Throwable) {
+                // Suppression is best-effort; cleanup must never replace the original failure.
+            }
+        }
+        originalFailure
     }
 }

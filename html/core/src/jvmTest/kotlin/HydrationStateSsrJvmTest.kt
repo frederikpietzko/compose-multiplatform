@@ -5,6 +5,7 @@
 
 package org.jetbrains.compose.web.core.tests
 
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.SideEffect
@@ -22,10 +23,12 @@ import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.Text
 import org.jetbrains.compose.web.renderToString
 import org.jetbrains.compose.web.renderToStringWithState
+import org.jetbrains.compose.web.state.HydrationStateException
 import org.jetbrains.compose.web.state.rememberHydratableState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertSame
 
 class HydrationStateSsrJvmTest {
     @Test
@@ -105,19 +108,25 @@ class HydrationStateSsrJvmTest {
 
     @OptIn(ExperimentalComposeApi::class)
     @Test
-    fun encodeFailureStillCleansUpRecomposer() {
+    fun encodeFailureSurvivesThrowingDisposalAndCleansUpRecomposer() {
         val recomposersBefore = Recomposer.runningRecomposers.value.size
+        val disposalFailure = IllegalStateException("dispose failed")
 
-        assertFailsWith<IllegalStateException> {
+        val failure = assertFailsWith<HydrationStateException> {
             renderToStringWithState {
                 rememberHydratableState(
                     key = "broken",
                     serializer = FailingEncodeSerializer
                 ) { 1 }
+                DisposableEffect(Unit) {
+                    onDispose { throw disposalFailure }
+                }
                 Text("content")
             }
         }
 
+        assertEquals("Failed to serialize hydration state \"broken\"", failure.message)
+        assertSame(disposalFailure, failure.suppressedExceptions.single())
         assertEquals(
             recomposersBefore,
             Recomposer.runningRecomposers.value.size

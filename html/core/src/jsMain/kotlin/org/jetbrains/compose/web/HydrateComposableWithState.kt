@@ -22,6 +22,7 @@ import org.w3c.dom.Element
  * Payload transport and HTML embedding are caller responsibilities.
  */
 @OptIn(ComposeWebInternalApi::class)
+@Suppress("DEPRECATION")
 fun <TElement : Element> hydrateComposable(
     root: TElement,
     stateJson: String,
