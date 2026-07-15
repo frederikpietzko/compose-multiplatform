@@ -83,6 +83,24 @@ fun <TElement : Element> hydrateComposable(
     root: TElement,
     monotonicFrameClock: MonotonicFrameClock = DefaultMonotonicFrameClock,
     content: @Composable DOMScope<TElement>.() -> Unit
+): Composition = hydrateComposableWithPreCommit(
+    root = root,
+    monotonicFrameClock = monotonicFrameClock,
+    beforeHydrationCommit = {},
+    content = content
+)
+
+/**
+ * Hydrates server-rendered DOM, invoking [beforeHydrationCommit] after initial composition is
+ * applied but before DOM completeness is checked and hydration is committed. Exceptions from the
+ * callback use normal hydration abort cleanup.
+ */
+@ComposeWebInternalApi
+fun <TElement : Element> hydrateComposableWithPreCommit(
+    root: TElement,
+    monotonicFrameClock: MonotonicFrameClock,
+    beforeHydrationCommit: () -> Unit,
+    content: @Composable DOMScope<TElement>.() -> Unit
 ): Composition {
     GlobalSnapshotManager.ensureStarted()
     val session = HydrationSession(root)
@@ -94,7 +112,10 @@ fun <TElement : Element> hydrateComposable(
             monotonicFrameClock = monotonicFrameClock,
             dispatcher = JsMicrotasksDispatcher(),
             strategy = strategy,
-            onInitialCompositionApplied = strategy::finish,
+            onInitialCompositionApplied = {
+                beforeHydrationCommit()
+                strategy.finish()
+            },
             onCompositionFailed = {
                 try {
                     session.abort()
