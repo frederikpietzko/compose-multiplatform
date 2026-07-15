@@ -24,6 +24,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(project(":internal-html-core-runtime"))
+                api(libs.kotlinx.serialization.json)
                 implementation(compose.runtime)
                 implementation(libs.kotlinx.coroutines.core)
             }

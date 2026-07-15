@@ -64,6 +64,10 @@ dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {
             library("kotlinx-coroutines-core", "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0-RC")
+            library(
+                "kotlinx-serialization-json",
+                "org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0"
+            )
         }
     }
 }
