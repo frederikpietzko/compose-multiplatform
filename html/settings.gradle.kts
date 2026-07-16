@@ -69,6 +69,9 @@ dependencyResolutionManagement {
                 "org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0"
             )
         }
+        create("ktorLibs") {
+            from("io.ktor:ktor-version-catalog:3.5.1")
+        }
     }
 }
 
@@ -91,6 +94,7 @@ module(":internal-html-core-runtime", "internal-html-core-runtime")
 module(":html-test-utils", "test-utils")
 module(":examples:spring-boot-ssr", "examples/spring-boot-ssr")
 module(":examples:hydration-spring", "examples/hydration-spring")
+module(":examples:state-hydration", "examples/state-hydration")
 
 if (extra["compose.web.tests.skip.benchmarks"]!!.toString().toBoolean() != true) {
     module(":html-benchmark-core", "benchmark-core")

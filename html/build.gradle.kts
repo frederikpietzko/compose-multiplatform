@@ -1,5 +1,4 @@
 import jetbrains.compose.web.gradle.SeleniumDriverPlugin
-import org.gradle.api.tasks.testing.AbstractTestTask
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.compose.gradle.kotlinKarmaConfig
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -57,7 +56,9 @@ subprojects {
         }
     }
 
-    if (projectName != "hydration-spring") {
+    val ignoreProjects = listOf("hydration-spring", "spring-boot-ssr", "state-hydration")
+
+    if (projectName !in ignoreProjects) {
         tasks.withType<KotlinCompile> {
             compilerOptions {
                 jvmTarget.set(JvmTarget.JVM_11)
@@ -70,7 +71,10 @@ subprojects {
             repositories {
                 maven {
                     name = "internal"
-                    url = uri(COMPOSE_REPO_URL ?: System.getenv("COMPOSE_REPO_URL") ?: "https://packages.jetbrains.team/maven/p/cmp/dev")
+                    url = uri(
+                        COMPOSE_REPO_URL ?: System.getenv("COMPOSE_REPO_URL")
+                        ?: "https://packages.jetbrains.team/maven/p/cmp/dev"
+                    )
                     credentials {
                         username = COMPOSE_REPO_USERNAME ?: System.getenv("COMPOSE_REPO_USERNAME") ?: ""
                         password = COMPOSE_REPO_KEY ?: System.getenv("COMPOSE_REPO_KEY") ?: ""
