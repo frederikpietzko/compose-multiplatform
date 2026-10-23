@@ -55,6 +55,12 @@ expect fun <T> hydrateRoot(
     content: @Composable ElementScope<HTMLDivElement>.(T) -> Unit,
 ): Composition
 
+/**
+ * Replaces one hydration pair with a new server-rendered fragment and hydrates its state.
+ *
+ * When provided, [previousComposition] is disposed before the old root and state elements are
+ * replaced. The new fragment must contain one valid root and state pair for [hydrationId].
+ */
 expect fun <T> rehydrateRoot(
     html: String,
     deserializeState: (String) -> T,
@@ -62,6 +68,7 @@ expect fun <T> rehydrateRoot(
     onHydrationMismatch: (HydrationMismatchException) -> Unit = ::reportHydrationMismatch,
     within: ParentNode = browserDocument,
     hydrationId: String? = null,
+    previousComposition: Composition? = null,
     content: @Composable ElementScope<HTMLDivElement>.(T) -> Unit,
 ): Composition
 
@@ -179,6 +186,7 @@ internal fun findHydrationProtocol(within: ParentNode, hydrationId: String?): Hy
 
     return HydrationBootstrapData(
         root = root,
+        state = state,
         serializedState = state.textContent.orEmpty().unescapeFromHydrationStateElement(),
         validationMode = validationMode,
     )
@@ -209,6 +217,7 @@ internal fun invalidHydrationState(message: String, cause: Throwable? = null): N
 
 internal class HydrationBootstrapData(
     val root: HTMLDivElement,
+    val state: Element,
     val serializedState: String,
     val validationMode: HtmlValidationMode,
 )

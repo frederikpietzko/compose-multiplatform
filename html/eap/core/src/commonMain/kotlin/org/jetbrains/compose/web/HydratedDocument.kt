@@ -60,6 +60,30 @@ fun renderHydratedDocument(
 ): String = renderHydratedDocument(validateStrictly = validateStrictly, key = null, content = content)
 
 /**
+ * Renders an HTML fragment with optional browser hydration.
+ *
+ * Unlike [renderHydratedDocument], this does not add a doctype or require one `html` element.
+ * Use [HydrationRoot] to emit the root and its initial state.
+ */
+fun renderHydratedFragment(
+    validateStrictly: Boolean = defaultHtmlValidationMode() == HtmlValidationMode.Strict,
+    key: String?,
+    content: @Composable () -> Unit,
+): String = composeHydratedDocument(
+    validateStrictly = validateStrictly,
+    key = key,
+    prefix = "",
+    requireHtmlDocumentRoot = false,
+    content = content,
+)
+
+/** Renders an HTML fragment with fresh storage. */
+fun renderHydratedFragment(
+    validateStrictly: Boolean = defaultHtmlValidationMode() == HtmlValidationMode.Strict,
+    content: @Composable () -> Unit,
+): String = renderHydratedFragment(validateStrictly, key = null, content = content)
+
+/**
  * Streams the same HTML as [renderHydratedDocument], including its doctype and hydration state.
  * [content] must produce exactly one `html` element; client loading requirements follow
  * [renderHydratedDocument].
@@ -110,14 +134,16 @@ internal fun composeHydratedDocument(
     chunkSink: ((StringBuilder) -> Unit)? = null,
     chunkSize: Int = 2048,
     key: String? = null,
+    prefix: String = HtmlDoctype,
+    requireHtmlDocumentRoot: Boolean = validateStrictly,
     content: @Composable () -> Unit,
 ): String {
     val seenHydrationIds = if (validateStrictly) mutableSetOf<String>() else null
     return composeHtmlString(
-        requireHtmlDocumentRoot = validateStrictly,
+        requireHtmlDocumentRoot = requireHtmlDocumentRoot,
         chunkSink = chunkSink,
         chunkSize = chunkSize,
-        prefix = HtmlDoctype,
+        prefix = prefix,
         key = key,
     ) {
         CompositionLocalProvider(

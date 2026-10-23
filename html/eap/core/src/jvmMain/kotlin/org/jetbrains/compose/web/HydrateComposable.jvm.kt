@@ -60,6 +60,7 @@ actual fun <T> rehydrateRoot(
     onHydrationMismatch: (HydrationMismatchException) -> Unit,
     within: ParentNode,
     hydrationId: String?,
+    previousComposition: Composition?,
     content: @Composable (ElementScope<HTMLDivElement>.(T) -> Unit)
 ): Composition {
     notOnJVM()

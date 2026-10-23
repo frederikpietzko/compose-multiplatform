@@ -1,6 +1,7 @@
 package org.jetbrains.compose.web
 
 import androidx.compose.runtime.*
+import kotlinx.browser.dom.Document
 import kotlinx.browser.dom.Element
 import kotlinx.browser.dom.HTMLDivElement
 import kotlinx.browser.dom.ParentNode
@@ -11,6 +12,7 @@ import org.jetbrains.compose.web.dom.*
 import org.jetbrains.compose.web.internal.runtime.DomNodeWrapper
 import org.jetbrains.compose.web.internal.runtime.GlobalSnapshotManager
 import org.jetbrains.compose.web.internal.runtime.JsMicrotasksDispatcher
+import org.jetbrains.compose.web.internal.unsafeCast
 
 
 /**
@@ -166,27 +168,36 @@ actual fun <T> rehydrateRoot(
     onHydrationMismatch: (HydrationMismatchException) -> Unit,
     within: ParentNode,
     hydrationId: String?,
+    previousComposition: Composition?,
     content: @Composable (ElementScope<HTMLDivElement>.(T) -> Unit)
 ): Composition {
-    val protocol = findHydrationProtocol(within, hydrationId)
+    val container = browserDocument
+        .unsafeCast<Document>()
+        .createElement("div")
+        .unsafeCast<HTMLDivElement>()
+    container.innerHTML = html
+    val newProtocol = findHydrationProtocol(container, hydrationId)
+    val oldProtocol = findHydrationProtocol(within, hydrationId)
     val initialState = try {
-        deserializeState(protocol.serializedState)
+        deserializeState(newProtocol.serializedState)
     } catch (failure: Throwable) {
         invalidHydrationState(
             "Failed to deserialize the Compose hydration state",
             failure,
         )
     }
-    protocol.root.replaceWith(html)
+    previousComposition?.dispose()
+    oldProtocol.root.replaceWith(newProtocol.root)
+    oldProtocol.state.replaceWith(newProtocol.state)
     val scope = ElementScopeImpl<HTMLDivElement>().apply {
-        element = protocol.root
+        element = newProtocol.root
     }
 
     return hydrateComposableWithMode(
-        root = protocol.root,
+        root = newProtocol.root,
         monotonicFrameClock = monotonicFrameClock,
         onHydrationMismatch = onHydrationMismatch,
-        validationMode = protocol.validationMode,
+        validationMode = newProtocol.validationMode,
     ) {
         content(scope, initialState)
     }
