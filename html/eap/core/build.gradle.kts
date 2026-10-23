@@ -1,9 +1,6 @@
 @file:OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
 
 import org.jetbrains.compose.gradle.standardConf
-import org.gradle.api.tasks.Copy
-import org.gradle.api.tasks.JavaExec
-import org.gradle.language.jvm.tasks.ProcessResources
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinJsCompilation
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 
@@ -20,6 +17,7 @@ plugins {
 
 
 kotlin {
+
     jvm()
     js(IR) {
         browser {

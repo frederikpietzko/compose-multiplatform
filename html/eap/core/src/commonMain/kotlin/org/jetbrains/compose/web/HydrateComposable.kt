@@ -1,0 +1,214 @@
+package org.jetbrains.compose.web
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Composition
+import androidx.compose.runtime.DefaultMonotonicFrameClock
+import androidx.compose.runtime.MonotonicFrameClock
+import kotlinx.browser.dom.Element
+import kotlinx.browser.dom.HTMLDivElement
+import kotlinx.browser.dom.ParentNode
+import org.jetbrains.compose.web.dom.DOMScope
+import org.jetbrains.compose.web.dom.ElementScope
+import org.jetbrains.compose.web.internal.unsafeCast
+
+/** Indicates that hydration state could not be located, validated, or deserialized. */
+class HydrationStateException internal constructor(
+    message: String,
+    cause: Throwable? = null,
+) : IllegalStateException(message, cause)
+
+expect val browserDocument: ParentNode
+
+internal expect fun reportHydrationMismatch(mismatch: HydrationMismatchException)
+
+/**
+ * Hydrates one [HydrationRoot] in a server-rendered document.
+ *
+ * Pass the same [hydrationId] used by [HydrationRoot] to select a named root and its state element.
+ * A null [hydrationId] selects the unnamed pair. The selected root and state element must each be
+ * unique within [within], which defaults to the browser document. Pass a narrower [within] to
+ * limit the search to one subtree.
+ *
+ * Run this after both elements have been parsed. Place the bootstrap script after them, defer an
+ * external classic script or use a module script.
+ *
+ * [deserializeState] must match the serializer used on the server. The embedded state is public,
+ * user-editable input. Use a safely configured deserializer, and validate and authorize any values
+ * sent back to a server. Treat the deserialized state as an immutable snapshot.
+ *
+ * Hydration adopts the root's server-rendered children and leaves the state element in the document.
+ * The state element records the server's validation mode. In fast mode, hydration retains initial
+ * server values until a Compose update.
+ *
+ * A blank [hydrationId], a missing or duplicate pair, malformed protocol elements, or invalid
+ * serialized state throw [HydrationStateException] before composition starts.
+ *
+ * @throws HydrationStateException if [hydrationId] is blank, the selected pair is invalid or
+ * deserialization fails.
+ */
+expect fun <T> hydrateRoot(
+    deserializeState: (String) -> T,
+    monotonicFrameClock: MonotonicFrameClock = DefaultMonotonicFrameClock,
+    onHydrationMismatch: (HydrationMismatchException) -> Unit = ::reportHydrationMismatch,
+    within: ParentNode = browserDocument,
+    hydrationId: String? = null,
+    content: @Composable ElementScope<HTMLDivElement>.(T) -> Unit,
+): Composition
+
+expect fun <T> rehydrateRoot(
+    html: String,
+    deserializeState: (String) -> T,
+    monotonicFrameClock: MonotonicFrameClock = DefaultMonotonicFrameClock,
+    onHydrationMismatch: (HydrationMismatchException) -> Unit = ::reportHydrationMismatch,
+    within: ParentNode = browserDocument,
+    hydrationId: String? = null,
+    content: @Composable ElementScope<HTMLDivElement>.(T) -> Unit,
+): Composition
+
+/**
+ * Adopts an existing server-rendered DOM tree. Structural mismatches are reported and fall back
+ * to a client render. Initial server text and attributes are retained until a subsequent client
+ * update, except when parser-merged text nodes must be split back into Compose nodes.
+ * Pass `validateStrictly = true` to compare them during initial hydration.
+ * Formatting-only HTML whitespace immediately inside [root], before or after the composed
+ * content, is ignored. A throwing
+ * [onHydrationMismatch] aborts the fallback and leaves the server DOM untouched.
+ * After node claiming succeeds, hydration commits DOM changes and runs properties and effects.
+ * An application failure during this phase is propagated; already-applied mutations are not
+ * rolled back.
+ *
+ * Content that the client cannot reproduce, such as a server timestamp, can keep its
+ * server-rendered element and use the client value by opting out of comparison with
+ * [org.jetbrains.compose.web.attributes.AttrsScope.allowHydrationMismatch].
+ */
+fun <TElement : Element> hydrateComposable(
+    root: TElement,
+    monotonicFrameClock: MonotonicFrameClock = DefaultMonotonicFrameClock,
+    onHydrationMismatch: (HydrationMismatchException) -> Unit = ::reportHydrationMismatch,
+    validateStrictly: Boolean = false,
+    content: @Composable DOMScope<TElement>.() -> Unit,
+): Composition = hydrateComposableWithMode(
+    root = root,
+    monotonicFrameClock = monotonicFrameClock,
+    onHydrationMismatch = onHydrationMismatch,
+    validationMode = if (validateStrictly) HtmlValidationMode.Strict else HtmlValidationMode.Fast,
+    content = content,
+)
+
+internal expect fun <TElement : Element> hydrateComposableWithMode(
+    root: TElement,
+    monotonicFrameClock: MonotonicFrameClock,
+    onHydrationMismatch: (HydrationMismatchException) -> Unit,
+    validationMode: HtmlValidationMode,
+    content: @Composable DOMScope<TElement>.() -> Unit,
+): Composition
+
+internal expect fun <TElement : Element> hydrateOnce(
+    root: TElement,
+    monotonicFrameClock: MonotonicFrameClock,
+    validationMode: HtmlValidationMode,
+    content: @Composable DOMScope<TElement>.() -> Unit,
+): Composition
+
+internal inline fun Throwable.suppressCleanupFailure(cleanup: () -> Unit) {
+    try {
+        cleanup()
+    } catch (cleanupFailure: Throwable) {
+        addSuppressed(cleanupFailure)
+    }
+}
+
+internal fun findHydrationProtocol(within: ParentNode, hydrationId: String?): HydrationBootstrapData {
+    if (hydrationId != null && hydrationId.isBlank()) {
+        invalidHydrationState("hydrationId must not be blank")
+    }
+
+    val rootId = hydrationId.orEmpty()
+    val candidates = within.querySelectorAll("[$HydrationRootAttribute],[$HydrationStateAttribute]")
+    var matchingRoot: Element? = null
+    var matchingState: Element? = null
+    var rootCount = 0
+    var stateCount = 0
+
+    for (index in 0 until candidates.length) {
+        val element = candidates.item(index) as Element
+        if (element.getAttribute(HydrationRootAttribute) == rootId) {
+            matchingRoot = element
+            rootCount++
+        }
+
+        // For unnamed roots, the state must have no hydration-for attribute
+        if (element.hasAttribute(HydrationStateAttribute) &&
+            element.getAttribute(HydrationForAttribute) == hydrationId
+        ) {
+            matchingState = element
+            stateCount++
+        }
+    }
+
+    val rootElement = requireUniqueProtocolElement(matchingRoot, rootCount, "hydration root")
+    if (!rootElement.tagName.equals("div", ignoreCase = true)) {
+        invalidHydrationState("The Compose hydration root must be a <div>")
+    }
+    val root = rootElement.unsafeCast<HTMLDivElement>()
+
+    val state = requireUniqueProtocolElement(matchingState, stateCount, "hydration state element")
+    if (root.contains(state)) {
+        invalidHydrationState(
+            "The Compose hydration state element must be outside the hydration root"
+        )
+    }
+    if (!state.tagName.equals("script", ignoreCase = true)) {
+        invalidHydrationState("The Compose hydration state element must be a <script>")
+    }
+    val mimeType = state.getAttribute("type")?.substringBefore(';')?.trim()
+    if (!mimeType.equals(HydrationStateMimeType, ignoreCase = true)) {
+        invalidHydrationState(
+            "The Compose hydration state element must have type \"$HydrationStateMimeType\""
+        )
+    }
+    val format = state.getAttribute(HydrationStateAttribute)
+    if (format != HydrationStateFormat) {
+        invalidHydrationState("The Compose hydration state has unsupported format \"$format\"")
+    }
+    val validationMode = when (val setting = state.getAttribute(HydrationValidationAttribute)) {
+        null -> HtmlValidationMode.Fast
+        HydrationValidationEnabled -> HtmlValidationMode.Strict
+        else -> invalidHydrationState("The Compose hydration validation mode is unsupported: \"$setting\"")
+    }
+
+    return HydrationBootstrapData(
+        root = root,
+        serializedState = state.textContent.orEmpty().unescapeFromHydrationStateElement(),
+        validationMode = validationMode,
+    )
+}
+
+internal fun requireUniqueProtocolElement(
+    element: Element?,
+    count: Int,
+    description: String,
+): Element {
+    if (count != 1) {
+        val timingHint = if (count == 0) {
+            " Make sure hydrateRoot runs after the hydration root and state have been parsed. " +
+                    "Defer its bootstrap script or move it to the end of <body>."
+        } else {
+            ""
+        }
+        invalidHydrationState(
+            "Expected exactly one Compose $description, but found $count." + timingHint,
+        )
+    }
+    return element
+        ?: invalidHydrationState("The Compose $description is not an element")
+}
+
+internal fun invalidHydrationState(message: String, cause: Throwable? = null): Nothing =
+    throw HydrationStateException(message, cause)
+
+internal class HydrationBootstrapData(
+    val root: HTMLDivElement,
+    val serializedState: String,
+    val validationMode: HtmlValidationMode,
+)
