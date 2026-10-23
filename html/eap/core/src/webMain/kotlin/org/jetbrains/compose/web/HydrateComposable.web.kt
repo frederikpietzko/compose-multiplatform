@@ -14,6 +14,21 @@ import org.jetbrains.compose.web.internal.runtime.GlobalSnapshotManager
 import org.jetbrains.compose.web.internal.runtime.JsMicrotasksDispatcher
 import org.jetbrains.compose.web.internal.unsafeCast
 
+private val activeHydrationRoots = mutableMapOf<String?, Composition>()
+
+private fun trackHydrationRoot(hydrationId: String?, composition: Composition): Composition =
+    object : Composition by composition {
+        override fun dispose() {
+            try {
+                composition.dispose()
+            } finally {
+                if (activeHydrationRoots[hydrationId] === this) {
+                    activeHydrationRoots.remove(hydrationId)
+                }
+            }
+        }
+    }.also { activeHydrationRoots[hydrationId] = it }
+
 
 /**
  * Hydrates one [HydrationRoot] in a server-rendered document.
@@ -61,14 +76,17 @@ actual fun <T> hydrateRoot(
         element = protocol.root
     }
 
-    return hydrateComposableWithMode(
-        root = protocol.root,
-        monotonicFrameClock = monotonicFrameClock,
-        onHydrationMismatch = onHydrationMismatch,
-        validationMode = protocol.validationMode,
-    ) {
-        content(scope, initialState)
-    }
+    return trackHydrationRoot(
+        hydrationId,
+        hydrateComposableWithMode(
+            root = protocol.root,
+            monotonicFrameClock = monotonicFrameClock,
+            onHydrationMismatch = onHydrationMismatch,
+            validationMode = protocol.validationMode,
+        ) {
+            content(scope, initialState)
+        },
+    )
 }
 
 internal actual fun <TElement : Element> hydrateComposableWithMode(
@@ -168,7 +186,6 @@ actual fun <T> rehydrateRoot(
     onHydrationMismatch: (HydrationMismatchException) -> Unit,
     within: ParentNode,
     hydrationId: String?,
-    previousComposition: Composition?,
     content: @Composable (ElementScope<HTMLDivElement>.(T) -> Unit)
 ): Composition {
     val container = browserDocument
@@ -186,19 +203,22 @@ actual fun <T> rehydrateRoot(
             failure,
         )
     }
-    previousComposition?.dispose()
+    activeHydrationRoots[hydrationId]?.dispose()
     oldProtocol.root.replaceWith(newProtocol.root)
     oldProtocol.state.replaceWith(newProtocol.state)
     val scope = ElementScopeImpl<HTMLDivElement>().apply {
         element = newProtocol.root
     }
 
-    return hydrateComposableWithMode(
-        root = newProtocol.root,
-        monotonicFrameClock = monotonicFrameClock,
-        onHydrationMismatch = onHydrationMismatch,
-        validationMode = newProtocol.validationMode,
-    ) {
-        content(scope, initialState)
-    }
+    return trackHydrationRoot(
+        hydrationId,
+        hydrateComposableWithMode(
+            root = newProtocol.root,
+            monotonicFrameClock = monotonicFrameClock,
+            onHydrationMismatch = onHydrationMismatch,
+            validationMode = newProtocol.validationMode,
+        ) {
+            content(scope, initialState)
+        },
+    )
 }

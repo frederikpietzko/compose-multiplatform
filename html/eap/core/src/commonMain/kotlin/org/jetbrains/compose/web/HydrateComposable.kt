@@ -58,7 +58,7 @@ expect fun <T> hydrateRoot(
 /**
  * Replaces one hydration pair with a new server-rendered fragment and hydrates its state.
  *
- * When provided, [previousComposition] is disposed before the old root and state elements are
+ * Any active composition for [hydrationId] is disposed before the old root and state elements are
  * replaced. The new fragment must contain one valid root and state pair for [hydrationId].
  */
 expect fun <T> rehydrateRoot(
@@ -68,7 +68,6 @@ expect fun <T> rehydrateRoot(
     onHydrationMismatch: (HydrationMismatchException) -> Unit = ::reportHydrationMismatch,
     within: ParentNode = browserDocument,
     hydrationId: String? = null,
-    previousComposition: Composition? = null,
     content: @Composable ElementScope<HTMLDivElement>.(T) -> Unit,
 ): Composition
 
